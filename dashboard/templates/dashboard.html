@@ -53,9 +53,10 @@
     border:1px solid #e5e7eb; border-radius:12px; max-width:calc(100% - 40px); margin:0 auto}
   .filters::-webkit-scrollbar{height:8px}
   .filters::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
-  .sel,.btn{height:40px; border:1px solid #d4d9e2; background:#fff; border-radius:10px; padding:0 12px}
+  .sel,.btn{height:40px; border:1px solid #d4d9e2; background:#fff; border-radius:10px; padding:0 12px; font-size:14px}
   .btn{background:#fff; font-weight:700; cursor:pointer}
   .btn.blue{background:var(--blue); color:#fff}
+  .btn.green{background:#059669; color:#fff}
   .btn:hover{filter:brightness(.97)}
 
   /* Table - FIX: horizontal scroll with synchronized header & body */
@@ -101,7 +102,7 @@
   /* Status popover - FIX: posisi fixed agar tidak terpotong */
   .status-pop{
     position:fixed; background:#fff; border:1px solid #dfe4ec; border-radius:10px; 
-    box-shadow:0 10px 30px rgba(0,0,0,.15); padding:6px; display:none; z-index:100; min-width:140px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15); padding:6px; display:none; z-index:100; min-width:180px;
   }
   .status-pop button{
     display:block; width:100%; text-align:left; padding:10px 14px; border-radius:8px; 
@@ -125,6 +126,7 @@
   .dz-center.hidden{display:none}
   .dz-file{display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:12px; border:1px dashed #e1e5ee; background:#fbfdff}
   .pdf-badge{background:#e11d48; color:#fff; font-weight:800; padding:2px 6px; border-radius:6px; font-size:12px}
+  .word-badge{background:#2b579a; color:#fff; font-weight:800; padding:2px 6px; border-radius:6px; font-size:12px}
   .file-ctl{margin-left:auto; cursor:pointer}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
   .lbl{font-size:12px; color:#111827; margin:10px 0 6px}
@@ -134,9 +136,13 @@
   .hidden{display:none !important}
 
   /* CHART CARDS */
-  .charts{padding:24px; display:grid; grid-template-columns:1fr 1fr; gap:18px; overflow-y:auto}
+  .chart-section{flex:1; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column}
+  .charts{padding:24px; display:grid; grid-template-columns:1fr 1fr; gap:18px}
   .card{background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px}
   .card h3{margin-bottom:8px; font-size:16px}
+  .card-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
+  .card-header h3{margin:0}
+  .card-header select{height:32px; border:1px solid #d4d9e2; border-radius:8px; padding:0 8px; font-size:13px}
   .card .canvas-wrap{position:relative; width:100%; height:320px}
   
   @media (max-width: 900px){
@@ -200,8 +206,9 @@
           <select id="fFrom" class="sel" style="min-width:160px"></select>
           <select id="fTo" class="sel" style="min-width:160px"></select>
 
-          <button id="fClean" class="btn">Clean</button>
+          <button id="fClean" class="btn">Clear</button>
           <button id="fSearch" class="btn">Search</button>
+          <button id="btnExport" class="btn green">Export</button>
           <button id="openUpload" class="btn blue">Upload Invoice</button>
         </div>
       </div>
@@ -233,10 +240,15 @@
       </section>
 
       <!-- CHART PAGE -->
-      <section id="chartPage" class="hidden" style="flex:1; display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden;">
+      <section id="chartPage" class="hidden chart-section">
         <div class="charts" id="chartsWrap">
           <div class="card">
-            <h3>Details of Invoice (Amount per Remark)</h3>
+            <div class="card-header">
+              <h3>Details of Invoice (Amount per Remark)</h3>
+              <select class="chart-currency">
+                {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+              </select>
+            </div>
             <div class="canvas-wrap"><canvas id="barRemark"></canvas></div>
           </div>
           <div class="card">
@@ -244,11 +256,21 @@
             <div class="canvas-wrap"><canvas id="pieStatus"></canvas></div>
           </div>
           <div class="card">
-            <h3>Top Receivers by Amount</h3>
+            <div class="card-header">
+              <h3>Top Receivers by Amount</h3>
+              <select class="chart-currency">
+                {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+              </select>
+            </div>
             <div class="canvas-wrap"><canvas id="barReceiver"></canvas></div>
           </div>
           <div class="card">
-            <h3>Amount by Month</h3>
+            <div class="card-header">
+              <h3>Amount by Month</h3>
+              <select class="chart-currency">
+                {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+              </select>
+            </div>
             <div class="canvas-wrap"><canvas id="lineMonth"></canvas></div>
           </div>
         </div>
@@ -269,12 +291,12 @@
       <div id="dropzone" class="dropzone">
         <div id="dzCenter" class="dz-center"><div style="text-align:center">
           <button id="selectFile" class="btn">Select a file</button>
-          <div style="color:#6b7280; font-size:12px; margin-top:8px">Drag and drop a file here</div>
+          <div style="color:#6b7280; font-size:12px; margin-top:8px">Drag and drop a PDF or Word file here</div>
         </div></div>
-        <input id="fileInput" type="file" accept="application/pdf" class="hidden" />
+        <input id="fileInput" type="file" accept="application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" />
         <div id="filePreview" class="hidden">
           <div class="dz-file">
-            <span class="pdf-badge">PDF</span>
+            <span id="fileBadge" class="pdf-badge">PDF</span>
             <div id="fileName">-</div>
             <div id="fileMeta" style="color:#6b7280; font-size:12px">Ready</div>
             <div class="file-ctl" id="fileTrash">🗑</div>
@@ -358,6 +380,22 @@
   const $$ = (s)=>document.querySelectorAll(s);
   const api = (url, opts={}) => fetch(url, opts).then(r => r.ok ? r.json() : r.json().then(j=>Promise.reject(j)));
 
+  // Export counter
+  let exportCounter = 1;
+
+  // Currency conversion rates
+  const CURRENCY_RATES = {
+    'IDR': 1.0,
+    'USD': 15800.0,
+    'SGD': 11700.0
+  };
+
+  function convertCurrency(amount, fromCurrency, toCurrency) {
+    if (fromCurrency === toCurrency) return amount;
+    const amountInIDR = amount * CURRENCY_RATES[fromCurrency];
+    return amountInIDR / CURRENCY_RATES[toCurrency];
+  }
+
   // Sidebar collapse
   const sidebar = $("#sidebar");
   $("#collapseBtn").addEventListener("click", ()=>{
@@ -365,14 +403,13 @@
     $("#collapseBtn").textContent = mini ? ">" : "<";
   });
 
-  // Tabs - FIX: hide table completely in chart view
+  // Tabs
   $("#tabTable").onclick = ()=>{
     $("#tabTable").classList.add("active");
     $("#tabChart").classList.remove("active");
     $("#tablePage").classList.remove("hidden");
     $("#tablePage").style.display = "flex";
     $("#chartPage").classList.add("hidden");
-    $("#chartPage").style.display = "none";
     $("#filtersBar").style.display = "flex";
   };
   
@@ -380,9 +417,7 @@
     $("#tabChart").classList.add("active");
     $("#tabTable").classList.remove("active");
     $("#chartPage").classList.remove("hidden");
-    $("#chartPage").style.display = "flex";
     $("#tablePage").classList.add("hidden");
-    $("#tablePage").style.display = "none";
     $("#filtersBar").style.display = "none";
     renderCharts();
   };
@@ -504,6 +539,36 @@
     queryTable(); 
   };
 
+  // Export to Excel
+  $("#btnExport").onclick = async ()=>{
+    const p = new URLSearchParams();
+    const product = $("#fProduct").value; if(product && product!=="ALL") p.append("product", product);
+    const remarkId = $("#fRemark").value; if(remarkId && remarkId!=="ALL") p.append("remark_id", remarkId);
+    const currency = $("#fCurrency").value; if(currency && currency!=="ALL") p.append("currency", currency);
+    const status = $("#fStatus").value; if(status && status!=="ALL") p.append("status", status);
+    const from = $("#fFrom").value; if(from && from!=="ALL") p.append("from", from);
+    const to = $("#fTo").value; if(to && to!=="ALL") p.append("to", to);
+    const dr = $("#fDate").value; if(dr) p.append("daterange", dr);
+    
+    try {
+      const response = await fetch("{% url 'dashboard:api-export-excel' %}?"+p.toString());
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `InvoiceSummaryFile-V${exportCounter}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      exportCounter++;
+    } catch(e) {
+      alert('Failed to export: ' + e.message);
+    }
+  };
+
   (async()=>{ await loadFilters(); await queryTable(); })();
 
   // Row actions
@@ -516,7 +581,7 @@
     if(t.dataset.status){ openStatusPop(t, parseInt(t.dataset.status)); }
   });
 
-  // Status pop - FIX: positioning dengan fixed
+  // Status pop
   const statusPop = $("#statusPop");
   
   function openStatusPop(anchor, id){
@@ -527,7 +592,7 @@
     statusPop.innerHTML = all.map(s=>`<button data-set="${id}|${s}">${s}</button>`).join("");
     
     const r = anchor.getBoundingClientRect();
-    statusPop.style.left = (r.left - 40) + "px";
+    statusPop.style.left = (r.left - 60) + "px";
     statusPop.style.top = (r.bottom + 8) + "px";
     statusPop.style.display = "block";
   }
@@ -558,6 +623,7 @@
   const filePreview = $("#filePreview");
   const fileName = $("#fileName");
   const fileMeta = $("#fileMeta");
+  const fileBadge = $("#fileBadge");
   const fileTrash = $("#fileTrash");
   const dzCenter = $("#dzCenter");
 
@@ -583,6 +649,20 @@
   function handleFile(f){
     fileName.textContent = f.name;
     fileMeta.textContent = `${(f.size/1024).toFixed(0)} KB • Completed`;
+    
+    // Detect file type and set badge
+    const ext = f.name.split('.').pop().toLowerCase();
+    if(ext === 'pdf') {
+      fileBadge.textContent = 'PDF';
+      fileBadge.className = 'pdf-badge';
+    } else if(ext === 'doc' || ext === 'docx') {
+      fileBadge.textContent = 'WORD';
+      fileBadge.className = 'word-badge';
+    } else {
+      fileBadge.textContent = 'FILE';
+      fileBadge.className = 'pdf-badge';
+    }
+    
     filePreview.classList.remove("hidden");
     dzCenter.classList.add("hidden");
   }
@@ -615,6 +695,8 @@
     submitBtn.textContent = "Update";
     fileName.textContent = `Invoice #${r.invoice_number}`;
     fileMeta.textContent = `Completed`;
+    fileBadge.textContent = 'PDF';
+    fileBadge.className = 'pdf-badge';
     filePreview.classList.remove("hidden");
     dzCenter.classList.add("hidden");
 
@@ -653,9 +735,11 @@
   
   loadRemarksForModal();
 
-  $("#mAmount").addEventListener("input", e=>{
-    e.target.value = e.target.value.replace(/[^0-9.,]/g,'').replace(',', '.');
-  });
+  $("#mAmount").addEventListener("blur", e=>{
+  if(e.target.value) {
+    e.target.value = e.target.value.replace(',', '.');
+  }
+ });
 
   submitBtn.addEventListener("click", async ()=>{
     const remark = $("#mRemark").value;
@@ -740,7 +824,8 @@
       li.dataset.id=it.id;
       li.innerHTML = `<span style="flex:1">${it.name}</span>
         <button class="btn" data-up="${it.id}" style="padding:4px 8px">↑</button>
-        <button class="btn" data-down="${it.id}" style="padding:4px 8px">↓</button>`;
+        <button class="btn" data-down="${it.id}" style="padding:4px 8px">↓</button>
+        <button class="btn" data-delete="${it.id}" style="padding:4px 8px; background:#fee; color:#c00">🗑</button>`;
       ul.appendChild(li);
     });
   }
@@ -764,7 +849,32 @@
   };
   
   $("#remarksList").addEventListener("click", async (e)=>{
-    const up = e.target.dataset.up, down = e.target.dataset.down;
+    const up = e.target.dataset.up;
+    const down = e.target.dataset.down;
+    const deleteId = e.target.dataset.delete;
+    
+    // Handle delete
+    if(deleteId) {
+      if(!confirm("Delete this remark? This will only work if no invoices are using it.")) return;
+      try {
+        const res = await fetch(`/dashboard/api/remarks/${deleteId}/delete/`, {
+          method:"POST", 
+          headers:{'X-CSRFToken':'{{ csrf_token }}'}
+        });
+        const data = await res.json();
+        if(!data.ok) {
+          alert(data.msg || "Cannot delete remark");
+          return;
+        }
+        await refreshRemarkList(); 
+        await loadRemarksForModal();
+      } catch(e) {
+        alert("Error deleting remark");
+      }
+      return;
+    }
+    
+    // Handle reorder
     if(!up && !down) return;
     
     const items = [...$("#remarksList").children].map(li=>li.dataset.id);
@@ -807,6 +917,14 @@
   function renderCharts(){
     destroyCharts();
 
+    // Get currency for each chart
+    const currencySelects = $$(".chart-currency");
+    const currencies = {
+      remark: currencySelects[0]?.value || 'IDR',
+      receiver: currencySelects[1]?.value || 'IDR',
+      month: currencySelects[2]?.value || 'IDR'
+    };
+
     const byRemark = {};
     const byStatus = {};
     const byReceiver = {};
@@ -814,15 +932,21 @@
     
     rowsData.forEach(r=>{
       const amt = Number((r.amount||'0').toString().replace(/,/g,'')) || 0;
+      const curr = r.currency;
       const rk = r.remark || '-';
       const st = r.status || '-';
       const to = r.to_party || '-';
       const m = (r.date||'').slice(0,7) || '-';
 
-      byRemark[rk] = (byRemark[rk]||0) + amt;
+      // Convert to target currencies
+      const amtRemark = convertCurrency(amt, curr, currencies.remark);
+      const amtReceiver = convertCurrency(amt, curr, currencies.receiver);
+      const amtMonth = convertCurrency(amt, curr, currencies.month);
+
+      byRemark[rk] = (byRemark[rk]||0) + amtRemark;
       byStatus[st] = (byStatus[st]||0) + 1;
-      byReceiver[to] = (byReceiver[to]||0) + amt;
-      byMonth[m] = (byMonth[m]||0) + amt;
+      byReceiver[to] = (byReceiver[to]||0) + amtReceiver;
+      byMonth[m] = (byMonth[m]||0) + amtMonth;
     });
 
     const ctx1 = $("#barRemark"); 
@@ -834,7 +958,7 @@
       type: 'bar',
       data: { 
         labels: Object.keys(byRemark),
-        datasets: [{label:'Amount', data:Object.values(byRemark)}]
+        datasets: [{label:`Amount (${currencies.remark})`, data:Object.values(byRemark)}]
       },
       options: { 
         responsive:true, 
@@ -862,7 +986,7 @@
       type:'bar',
       data:{ 
         labels:recvEntries.map(e=>e[0]), 
-        datasets:[{label:'Amount', data:recvEntries.map(e=>e[1])}]
+        datasets:[{label:`Amount (${currencies.receiver})`, data:recvEntries.map(e=>e[1])}]
       },
       options:{ 
         responsive:true, 
@@ -878,7 +1002,7 @@
       data:{ 
         labels:mEntries.map(e=>e[0]), 
         datasets:[{
-          label:'Amount', 
+          label:`Amount (${currencies.month})`, 
           data:mEntries.map(e=>e[1]), 
           tension:.25, 
           fill:false
@@ -891,6 +1015,13 @@
       }
     });
   }
+
+  // Currency change listeners for charts
+  document.addEventListener('change', (e) => {
+    if(e.target.classList.contains('chart-currency')) {
+      renderCharts();
+    }
+  });
 </script>
 </body>
 </html>

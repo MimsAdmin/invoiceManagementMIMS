@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'authen',
     'sidebar',
     'dashboard',
+    'sidebar',
+
 ]
 
 MIDDLEWARE = [

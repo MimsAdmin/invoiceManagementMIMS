@@ -73,4 +73,4 @@ def sign_up(request):
 
 def sign_out(request):
     logout(request)
-    return redirect("authen:sign-in")
+    return redirect("landing")
