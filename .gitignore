@@ -1,0 +1,33 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables / virtualenv
+.env
+env/
+venv/
+.venv/
+
+# Django static and media folders (if managed outside version control)
+staticfiles/
+media/
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# Mac OS
+.DS_Store
+
+# IDE / Editor configs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Log files
+*.log
+
+# Local database (if using sqlite for dev, optional)
+db.sqlite3
