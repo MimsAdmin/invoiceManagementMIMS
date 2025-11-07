@@ -59,7 +59,6 @@ class Invoice(models.Model):
 
     @property
     def download_filename(self) -> str:
-        # [date]-[product]-[status]-[invoice remarks]-[from->to].pdf
         r = (self.remark.name if self.remark else "-").replace(" ", "_")
         p = self.product.replace(" ", "_")
         f = self.from_party.replace(" ", "_")

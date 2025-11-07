@@ -17,7 +17,7 @@ urlpatterns = [
     path("api/invoice/<int:pk>/status/", views.api_invoice_status, name="api-invoice-status"),
     path("api/filters/", views.api_filters, name="api-filters"),
     
-    # NEW: Export to Excel
+    # Export to Excel
     path("api/export/excel/", views.api_export_excel, name="api-export-excel"),
 
     # remarks

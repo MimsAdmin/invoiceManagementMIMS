@@ -1,283 +1,109 @@
+<!-- dashboard/templates/dashboard.html -->
+{% extends 'sidebar.html' %}
 {% load static %}
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Dashboard – MIMS</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  :root{
-    --blue:#102B86; --light:#eef0f3; --soft:#f5f6f8; --gray:#6b7280;
-    --nav-h:56px; --side-w:250px; --side-w-mini:76px; --radius:14px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{font-family:"Segoe UI",Roboto,Arial,Helvetica,sans-serif;background:#e9eaec;overflow:hidden}
 
-  /* Topbar */
-  .topbar{position:fixed; left:0; top:0; right:0; height:var(--nav-h);
-    background:#fff; display:flex; align-items:center; gap:12px;
-    border-bottom:1px solid #e5e7eb; z-index:50; padding:0 12px}
-  .hello{display:flex; align-items:center; gap:10px; font-weight:700}
-  .hello img{height:40px}
-  .logout{margin-left:auto; border:1px solid #ef9aa2; background:#fff7f7; color:#b51224;
-    height:36px; padding:0 16px; border-radius:10px; font-weight:700; cursor:pointer}
-  .logout:hover{filter:brightness(.97)}
-
-  /* Layout */
-  .wrap{display:flex; height:100%}
-  .sidebar{position:fixed; top:var(--nav-h); bottom:0; left:0; width:var(--side-w);
-    background:#fff; border-right:1px solid #e5e7eb; padding:12px; display:flex; flex-direction:column; gap:12px; transition:width .2s; z-index:40}
-  .side-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px}
-  .side-title{display:none}
-  .collapse-btn{width:38px; height:38px; border:1px solid #e5e7eb; border-radius:10px; background:#fff; cursor:pointer}
-  .nav-item{display:flex; align-items:center; gap:10px; height:54px; padding:0 16px; border-radius:12px; font-weight:700; color:#111; cursor:pointer; border:1px solid #edf0f3; text-decoration:none}
-  .nav-item.active{background:var(--blue); color:#fff}
-  .nav-item:hover{background:#f3f6fb}
-  .nav-icon{width:20px}
-  .mini .nav-text{display:none}
-  .mini{width:var(--side-w-mini)}
-  .main{position:relative; flex:1; margin-top:var(--nav-h); margin-left:var(--side-w); height:calc(100% - var(--nav-h)); overflow:hidden; transition:margin-left .2s}
-  .mini + .main{margin-left:var(--side-w-mini)}
-
-  /* Content header */
-  .content{height:100%; display:flex; flex-direction:column}
-  .page-head{padding:24px 20px 10px; background:#e9eaec}
-  .title{font-size:42px; font-weight:800; text-align:center; margin-bottom:14px}
-  .tabs{max-width:640px; margin:0 auto 12px; display:grid; grid-template-columns:1fr 1fr}
-  .tab{height:42px; display:grid; place-items:center; background:#e2e6ee; border:1px solid #d8dde6; cursor:pointer}
-  .tab.active{background:#fff; font-weight:700}
-
-  /* Filters – horizontal scroll */
-  .filters{display:flex; gap:12px; overflow-x:auto; padding:12px 8px 10px; background:#fff;
-    border:1px solid #e5e7eb; border-radius:12px; max-width:calc(100% - 40px); margin:0 auto}
-  .filters::-webkit-scrollbar{height:8px}
-  .filters::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
-  .sel,.btn{height:40px; border:1px solid #d4d9e2; background:#fff; border-radius:10px; padding:0 12px; font-size:14px}
-  .btn{background:#fff; font-weight:700; cursor:pointer}
-  .btn.blue{background:var(--blue); color:#fff}
-  .btn.green{background:#059669; color:#fff}
-  .btn:hover{filter:brightness(.97)}
-
-  /* Table - FIX: horizontal scroll with synchronized header & body */
-  .table-wrap{
-    margin:14px 20px 16px; background:#fff; border-radius:12px; border:1px solid #e5e7eb; 
-    overflow:hidden; display:flex; flex-direction:column; height:100%;
-  }
-  .table-container{
-    overflow-x:auto; overflow-y:hidden; flex:1; display:flex; flex-direction:column;
-  }
-  .table-container::-webkit-scrollbar{height:10px}
-  .table-container::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
-  
-  .table-inner{
-    min-width:1400px; display:flex; flex-direction:column; flex:1;
-  }
-  .thead{
-    background:var(--blue); color:#fff; display:grid;
-    grid-template-columns: 1.2fr 0.9fr 1.2fr 1.2fr 0.9fr 0.8fr 0.9fr 1fr 1fr 0.8fr 1fr;
-    gap:8px; padding:14px 16px; font-size:14px;
-  }
-  .thead>div{display:flex; align-items:center; justify-content:center; text-align:center; font-weight:700}
-  
-  .tbody-wrap{
-    flex:1; overflow-y:auto; overflow-x:hidden; padding:0 16px 12px;
-  }
-  .tbody-wrap::-webkit-scrollbar{width:8px}
-  .tbody-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
-  
-  .row{
-    display:grid;
-    grid-template-columns: 1.2fr 0.9fr 1.2fr 1.2fr 0.9fr 0.8fr 0.9fr 1fr 1fr 0.8fr 1fr;
-    gap:8px; align-items:center; border-bottom:1px solid #eef1f5; min-height:50px; padding:8px 0;
-  }
-  .row>div{display:flex; align-items:center; justify-content:center; text-align:center; font-size:13px}
-  
-  .empty-zone{margin:18px; border:2px dashed #d7dbe3; border-radius:12px; display:grid; place-items:center; color:#7b8794; height:360px; cursor:pointer; user-select:none}
-  .dl-btn{border:1px solid #cdd6e3; background:#fff; border-radius:8px; padding:6px 10px; font-weight:700; cursor:pointer; text-decoration:none; color:#111}
-  .dl-btn:hover{background:#f0f2f5}
-  .act{display:flex; gap:10px; align-items:center; justify-content:center}
-  .ic{width:20px; height:20px; cursor:pointer; font-size:18px}
-
-  /* Status popover - FIX: posisi fixed agar tidak terpotong */
-  .status-pop{
-    position:fixed; background:#fff; border:1px solid #dfe4ec; border-radius:10px; 
-    box-shadow:0 10px 30px rgba(0,0,0,.15); padding:6px; display:none; z-index:100; min-width:180px;
-  }
-  .status-pop button{
-    display:block; width:100%; text-align:left; padding:10px 14px; border-radius:8px; 
-    border:none; background:#fff; cursor:pointer; font-size:14px;
-  }
-  .status-pop button:hover{background:#f1f5fb}
-
-  /* Date range popover */
-  .range-pop{position:fixed; z-index:70; background:#fff; border:1px solid #d9dfe9; box-shadow:0 10px 30px rgba(0,0,0,.1); border-radius:12px; padding:10px; display:none}
-  .range-pop .ipt{height:38px; width:100%; border:1px solid #d4d9e2; border-radius:8px; padding:0 10px}
-  .range-pop .lbl{font-size:12px; margin:8px 0 4px; color:#374151}
-
-  /* Modal upload/update */
-  .modal-back{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(15,23,42,.35); z-index:60}
-  .modal{width:min(920px,96vw); background:#fff; border-radius:14px; overflow:hidden}
-  .modal-head{position:relative; padding:16px 20px; border-bottom:1px solid #eef1f5; font-weight:800; text-align:center}
-  .close-x{position:absolute; right:16px; top:10px; font-size:20px; cursor:pointer}
-  .modal-body{padding:16px 18px 22px}
-  .dropzone{position:relative; border:2px dashed #d7dbe3; border-radius:12px; height:122px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; overflow:hidden}
-  .dz-center{position:absolute; inset:0; display:grid; place-items:center}
-  .dz-center.hidden{display:none}
-  .dz-file{display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:12px; border:1px dashed #e1e5ee; background:#fbfdff}
-  .pdf-badge{background:#e11d48; color:#fff; font-weight:800; padding:2px 6px; border-radius:6px; font-size:12px}
-  .word-badge{background:#2b579a; color:#fff; font-weight:800; padding:2px 6px; border-radius:6px; font-size:12px}
-  .file-ctl{margin-left:auto; cursor:pointer}
-  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
-  .lbl{font-size:12px; color:#111827; margin:10px 0 6px}
-  .ipt,.sel2{height:44px; width:100%; border:1px solid #d4d9e2; border-radius:10px; padding:0 12px; background:#fff}
-  .submit{margin-top:18px; width:220px; height:46px; border:none; border-radius:12px; background:var(--blue); color:#fff; font-weight:800; cursor:pointer}
-  .submit:hover{filter:brightness(.98)}
-  .hidden{display:none !important}
-
-  /* CHART CARDS */
-  .chart-section{flex:1; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column}
-  .charts{padding:24px; display:grid; grid-template-columns:1fr 1fr; gap:18px}
-  .card{background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px}
-  .card h3{margin-bottom:8px; font-size:16px}
-  .card-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
-  .card-header h3{margin:0}
-  .card-header select{height:32px; border:1px solid #d4d9e2; border-radius:8px; padding:0 8px; font-size:13px}
-  .card .canvas-wrap{position:relative; width:100%; height:320px}
-  
-  @media (max-width: 900px){
-    .charts{grid-template-columns:1fr}
-    .card .canvas-wrap{height:280px}
-  }
-</style>
-</head>
-<body>
-<div class="topbar">
-  <div class="hello">
-    <img src="{% static 'mimsLogo.png' %}" alt="">
-    <div>Hello {{ username }}</div>
-  </div>
-  <button class="logout" id="logoutBtn">Logout</button>
-</div>
-
-<div class="wrap">
-  <!-- sidebar -->
-  <aside id="sidebar" class="sidebar">
-    <div class="side-header">
-      <div class="side-title">Menu</div>
-      <button id="collapseBtn" class="collapse-btn">&lt;</button>
+{% block content %}
+<div class="content">
+  <div class="page-head">
+    <div class="title">Dashboard of Invoice</div>
+    <div class="tabs">
+      <div id="tabTable" class="tab active">Table List</div>
+      <div id="tabChart" class="tab">Diagram Chart</div>
     </div>
-    <a href="#" data-page="dashboard" class="nav-item active"><span class="nav-icon">🏠</span><span class="nav-text">Dashboard</span></a>
-    <a href="{% url 'dashboard:log' %}" class="nav-item"><span class="nav-icon">≡</span><span class="nav-text">Log</span></a>
-    <a href="{% url 'dashboard:settings' %}" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-text">Settings</span></a>
-    <div style="margin-top:auto;"></div>
-  </aside>
 
-  <!-- main -->
-  <main id="main" class="main">
-    <div class="content">
+    <!-- Filters -->
+    <div class="filters" id="filtersBar">
+      <select id="fProduct" class="sel"></select>
 
-      <div class="page-head">
-        <div class="title">Dashboard of Invoice</div>
-        <div class="tabs">
-          <div id="tabTable" class="tab active">Table List</div>
-          <div id="tabChart" class="tab">Diagram Chart</div>
-        </div>
-
-        <!-- filters -->
-        <div class="filters" id="filtersBar">
-          <select id="fProduct" class="sel"></select>
-
-          <div style="position:relative">
-            <input id="fDate" class="sel" readonly placeholder="Date (All)" style="width:170px; cursor:pointer">
-            <div id="rangePop" class="range-pop" style="width:280px">
-              <div class="lbl">Start</div><input id="rangeStart" type="date" class="ipt" />
-              <div class="lbl">End</div><input id="rangeEnd" type="date" class="ipt" />
-              <div style="display:flex; gap:8px; margin-top:10px">
-                <button class="btn" id="rangeClear" style="flex:1">Clear</button>
-                <button class="btn blue" id="rangeApply" style="flex:1">Apply</button>
-              </div>
-            </div>
+      <div style="position:relative">
+        <input id="fDate" class="sel" readonly placeholder="Date (All)" style="width:170px; cursor:pointer">
+        <div id="rangePop" class="range-pop" style="width:280px">
+          <div class="lbl">Start</div>
+          <input id="rangeStart" type="date" class="ipt" />
+          <div class="lbl">End</div>
+          <input id="rangeEnd" type="date" class="ipt" />
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button class="btn" id="rangeClear" style="flex:1">Clear</button>
+            <button class="btn blue" id="rangeApply" style="flex:1">Apply</button>
           </div>
-
-          <select id="fRemark" class="sel" style="min-width:220px"></select>
-          <select id="fCurrency" class="sel"></select>
-          <select id="fStatus" class="sel"></select>
-          <select id="fFrom" class="sel" style="min-width:160px"></select>
-          <select id="fTo" class="sel" style="min-width:160px"></select>
-
-          <button id="fClean" class="btn">Clear</button>
-          <button id="fSearch" class="btn">Search</button>
-          <button id="btnExport" class="btn green">Export</button>
-          <button id="openUpload" class="btn blue">Upload Invoice</button>
         </div>
       </div>
 
-      <!-- TABLE PAGE -->
-      <section id="tablePage" style="flex:1; display:flex; flex-direction:column;">
-        <div class="table-wrap">
-          <div class="table-container">
-            <div class="table-inner">
-              <div class="thead">
-                <div>Product</div>
-                <div>Date</div>
-                <div>Invoice Remarks</div>
-                <div>Invoice Number</div>
-                <div>Amount</div>
-                <div>Currency</div>
-                <div>Status</div>
-                <div>From</div>
-                <div>To</div>
-                <div>Action</div>
-                <div>Download</div>
-              </div>
-              <div class="tbody-wrap">
-                <div id="tableBody"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <select id="fRemark" class="sel" style="min-width:220px"></select>
+      <select id="fCurrency" class="sel"></select>
+      <select id="fStatus" class="sel"></select>
+      <select id="fFrom" class="sel" style="min-width:160px"></select>
+      <select id="fTo" class="sel" style="min-width:160px"></select>
 
-      <!-- CHART PAGE -->
-      <section id="chartPage" class="hidden chart-section">
-        <div class="charts" id="chartsWrap">
-          <div class="card">
-            <div class="card-header">
-              <h3>Details of Invoice (Amount per Remark)</h3>
-              <select class="chart-currency">
-                {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-              </select>
-            </div>
-            <div class="canvas-wrap"><canvas id="barRemark"></canvas></div>
-          </div>
-          <div class="card">
-            <h3>Percentage of Invoice by Status</h3>
-            <div class="canvas-wrap"><canvas id="pieStatus"></canvas></div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h3>Top Receivers by Amount</h3>
-              <select class="chart-currency">
-                {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-              </select>
-            </div>
-            <div class="canvas-wrap"><canvas id="barReceiver"></canvas></div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h3>Amount by Month</h3>
-              <select class="chart-currency">
-                {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-              </select>
-            </div>
-            <div class="canvas-wrap"><canvas id="lineMonth"></canvas></div>
-          </div>
-        </div>
-      </section>
-
+      <button id="fClean" class="btn">Clear</button>
+      <button id="fSearch" class="btn">Search</button>
+      <button id="btnExport" class="btn green">Export</button>
+      <button id="openUpload" class="btn blue">Upload Invoice</button>
     </div>
-  </main>
+  </div>
+
+  <!-- TABLE PAGE -->
+  <section id="tablePage" style="flex:1; display:flex; flex-direction:column; overflow-y: auto; padding: 10px;">
+  <div class="table-wrap" style="margin: 0 auto; width: calc(100% - 40px); max-width: 100%; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; height: 400px; max-height: 400px; margin-bottom: 40px;">
+    <div class="table-container" style="overflow-x: auto; overflow-y: hidden; display: flex; flex-direction: column; height: 100%; flex: 1;">
+      <div class="table-inner" style="min-width: 1400px; display: flex; flex-direction: column; height: 100%; flex: 1;">
+        <div class="thead">
+          <div>Product</div>
+          <div>Date</div>
+          <div>Invoice Remarks</div>
+          <div>Invoice Number</div>
+          <div>Amount</div>
+          <div>Currency</div>
+          <div>Status</div>
+          <div>From</div>
+          <div>To</div>
+          <div>Action</div>
+          <div>Download</div>
+        </div>
+        <div class="tbody-wrap" style="flex: 1; overflow-y: scroll; overflow-x: hidden; padding: 0 16px 12px; height: 0; max-height: 344px;">
+          <div id="tableBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  <!-- CHART PAGE -->
+  <section id="chartPage" class="hidden chart-section">
+    <div class="charts" id="chartsWrap">
+      <div class="card">
+        <div class="card-header">
+          <h3>Details of Invoice (Amount per Remark)</h3>
+          <select class="chart-currency">
+            {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="canvas-wrap"><canvas id="barRemark"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Percentage of Invoice by Status</h3>
+        <div class="canvas-wrap"><canvas id="pieStatus"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Top Receivers by Amount</h3>
+          <select class="chart-currency">
+            {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="canvas-wrap"><canvas id="barReceiver"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Amount by Month</h3>
+          <select class="chart-currency">
+            {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="canvas-wrap"><canvas id="lineMonth"></canvas></div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <!-- Modal: Upload/Update -->
@@ -289,10 +115,12 @@
     </div>
     <div class="modal-body">
       <div id="dropzone" class="dropzone">
-        <div id="dzCenter" class="dz-center"><div style="text-align:center">
-          <button id="selectFile" class="btn">Select a file</button>
-          <div style="color:#6b7280; font-size:12px; margin-top:8px">Drag and drop a PDF or Word file here</div>
-        </div></div>
+        <div id="dzCenter" class="dz-center">
+          <div style="text-align:center">
+            <button id="selectFile" class="btn">Select a file</button>
+            <div style="color:#6b7280; font-size:12px; margin-top:8px">Drag and drop a PDF or Word file here</div>
+          </div>
+        </div>
         <input id="fileInput" type="file" accept="application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" />
         <div id="filePreview" class="hidden">
           <div class="dz-file">
@@ -308,7 +136,10 @@
       <input id="mProduct" class="ipt" placeholder="Product Name" />
 
       <div class="grid2">
-        <div><div class="lbl">Date:</div><input id="mDate" type="date" class="ipt" /></div>
+        <div>
+          <div class="lbl">Date:</div>
+          <input id="mDate" type="date" class="ipt" />
+        </div>
         <div>
           <div class="lbl">Invoice Remarks:</div>
           <div style="display:flex; gap:8px">
@@ -319,8 +150,14 @@
       </div>
 
       <div class="grid2">
-        <div><div class="lbl">Invoice Number:</div><input id="mNumber" class="ipt" placeholder="Invoice Number" /></div>
-        <div><div class="lbl">Amount:</div><input id="mAmount" class="ipt" type="number" step="0.01" inputmode="decimal" placeholder="0.00" /></div>
+        <div>
+          <div class="lbl">Invoice Number:</div>
+          <input id="mNumber" class="ipt" placeholder="Invoice Number" />
+        </div>
+        <div>
+          <div class="lbl">Amount:</div>
+          <input id="mAmount" class="ipt" type="number" step="0.01" inputmode="decimal" placeholder="0.00" />
+        </div>
       </div>
 
       <div class="grid2">
@@ -339,8 +176,14 @@
       </div>
 
       <div class="grid2">
-        <div><div class="lbl">From:</div><input id="mFrom" class="ipt" placeholder="From" /></div>
-        <div><div class="lbl">To:</div><input id="mTo" class="ipt" placeholder="To" /></div>
+        <div>
+          <div class="lbl">From:</div>
+          <input id="mFrom" class="ipt" placeholder="From" />
+        </div>
+        <div>
+          <div class="lbl">To:</div>
+          <input id="mTo" class="ipt" placeholder="To" />
+        </div>
       </div>
 
       <div style="display:flex; justify-content:center">
@@ -350,7 +193,7 @@
   </div>
 </div>
 
-<!-- sub modal Remarks -->
+<!-- Sub modal Remarks -->
 <div id="remarksBack" class="modal-back">
   <div class="modal" style="width:min(600px,96vw)">
     <div class="modal-head">
@@ -364,21 +207,25 @@
       </div>
       <div style="font-weight:700; margin:8px 0 6px">List of existing invoice remarks</div>
       <ul id="remarksList" style="list-style:none; padding:0; margin:0; max-height:220px; overflow:auto; border:1px solid #e5e7eb; border-radius:10px"></ul>
-      <div style="display:flex; justify-content:flex-end; margin-top:10px"><button id="remarksDone" class="btn">Done</button></div>
+      <div style="display:flex; justify-content:flex-end; margin-top:10px">
+        <button id="remarksDone" class="btn">Done</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- status pop -->
+<!-- Status pop -->
 <div id="statusPop" class="status-pop"></div>
+{% endblock %}
 
+{% block extra_js %}
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
 <script>
-  const $ = (s)=>document.querySelector(s);
-  const $$ = (s)=>document.querySelectorAll(s);
-  const api = (url, opts={}) => fetch(url, opts).then(r => r.ok ? r.json() : r.json().then(j=>Promise.reject(j)));
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+  const api = (url, opts = {}) => fetch(url, opts).then(r => r.ok ? r.json() : r.json().then(j => Promise.reject(j)));
 
   // Export counter
   let exportCounter = 1;
@@ -396,15 +243,8 @@
     return amountInIDR / CURRENCY_RATES[toCurrency];
   }
 
-  // Sidebar collapse
-  const sidebar = $("#sidebar");
-  $("#collapseBtn").addEventListener("click", ()=>{
-    const mini = sidebar.classList.toggle("mini");
-    $("#collapseBtn").textContent = mini ? ">" : "<";
-  });
-
   // Tabs
-  $("#tabTable").onclick = ()=>{
+  $("#tabTable").onclick = () => {
     $("#tabTable").classList.add("active");
     $("#tabChart").classList.remove("active");
     $("#tablePage").classList.remove("hidden");
@@ -412,8 +252,8 @@
     $("#chartPage").classList.add("hidden");
     $("#filtersBar").style.display = "flex";
   };
-  
-  $("#tabChart").onclick = ()=>{
+
+  $("#tabChart").onclick = () => {
     $("#tabChart").classList.add("active");
     $("#tabTable").classList.remove("active");
     $("#chartPage").classList.remove("hidden");
@@ -422,27 +262,31 @@
     renderCharts();
   };
 
-  // Logout
-  $("#logoutBtn").addEventListener("click", ()=>{ window.location.href = "{% url 'authen:logout' %}"; });
-
   // Filters
-  const fillSelect = (el, items, labelAll="All", mapFn=null) => {
+  const fillSelect = (el, items, labelAll = "All", mapFn = null) => {
     el.innerHTML = "";
     const opt = document.createElement("option");
-    opt.value = "ALL"; opt.textContent = `${labelAll} (All)`;
+    opt.value = "ALL";
+    opt.textContent = `${labelAll} (All)`;
     el.appendChild(opt);
-    (items||[]).forEach(v=>{
+    (items || []).forEach(v => {
       const o = document.createElement("option");
-      if(mapFn){ const {value,text} = mapFn(v); o.value=value; o.textContent=text; }
-      else{ o.value = v; o.textContent = v; }
+      if (mapFn) {
+        const { value, text } = mapFn(v);
+        o.value = value;
+        o.textContent = text;
+      } else {
+        o.value = v;
+        o.textContent = v;
+      }
       el.appendChild(o);
     });
   };
 
-  async function loadFilters(){
+  async function loadFilters() {
     const data = await api("{% url 'dashboard:api-filters' %}");
     fillSelect($("#fProduct"), data.products, "Product");
-    fillSelect($("#fRemark"), data.remarks, "Invoice Remarks", (r)=>({value:r.id, text:r.name}));
+    fillSelect($("#fRemark"), data.remarks, "Invoice Remarks", (r) => ({ value: r.id, text: r.name }));
     fillSelect($("#fCurrency"), data.currencies, "Currency");
     fillSelect($("#fStatus"), data.statuses, "Status");
     fillSelect($("#fFrom"), data.senders, "From");
@@ -450,53 +294,59 @@
   }
 
   // Date range popover
-  const fDate = $("#fDate"), rangePop = $("#rangePop");
-  fDate.addEventListener("click", (e)=>{
+  const fDate = $("#fDate"),
+    rangePop = $("#rangePop");
+  fDate.addEventListener("click", (e) => {
     e.stopPropagation();
     const r = fDate.getBoundingClientRect();
     rangePop.style.left = r.left + "px";
     rangePop.style.top = (r.bottom + 6) + "px";
     rangePop.style.display = "block";
   });
-  
-  $("#rangeApply").onclick = ()=>{
-    const s=$("#rangeStart").value, e=$("#rangeEnd").value;
-    if(s && e){ fDate.value = `${s} to ${e}` } else { fDate.value=""; }
-    rangePop.style.display="none";
+
+  $("#rangeApply").onclick = () => {
+    const s = $("#rangeStart").value,
+      e = $("#rangeEnd").value;
+    if (s && e) {
+      fDate.value = `${s} to ${e}`
+    } else {
+      fDate.value = "";
+    }
+    rangePop.style.display = "none";
   };
-  
-  $("#rangeClear").onclick = ()=>{ 
-    $("#rangeStart").value=""; 
-    $("#rangeEnd").value=""; 
-    fDate.value=""; 
-    rangePop.style.display="none";
+
+  $("#rangeClear").onclick = () => {
+    $("#rangeStart").value = "";
+    $("#rangeEnd").value = "";
+    fDate.value = "";
+    rangePop.style.display = "none";
   };
-  
-  document.addEventListener("click",(ev)=>{ 
-    if(!rangePop.contains(ev.target) && ev.target !== fDate){ 
-      rangePop.style.display="none"; 
-    } 
+
+  document.addEventListener("click", (ev) => {
+    if (!rangePop.contains(ev.target) && ev.target !== fDate) {
+      rangePop.style.display = "none";
+    }
   });
 
   // Table
   let rowsData = [];
   const body = $("#tableBody");
-  
-  function renderTable(){
+
+  function renderTable() {
     body.innerHTML = "";
-    if(!rowsData.length){
+    if (!rowsData.length) {
       const ez = document.createElement("div");
-      ez.id="emptyZone"; 
-      ez.className="empty-zone"; 
-      ez.textContent="Upload Your File";
+      ez.id = "emptyZone";
+      ez.className = "empty-zone";
+      ez.textContent = "Upload Your File";
       body.appendChild(ez);
       ez.addEventListener("click", openCreateModal);
       return;
     }
-    
-    rowsData.forEach(r=>{
+
+    rowsData.forEach(r => {
       const row = document.createElement("div");
-      row.className="row";
+      row.className = "row";
       row.innerHTML = `
         <div>${r.product}</div>
         <div>${r.date}</div>
@@ -518,42 +368,56 @@
     });
   }
 
-  async function queryTable(){
+  async function queryTable() {
     const p = new URLSearchParams();
-    const product = $("#fProduct").value; if(product && product!=="ALL") p.append("product", product);
-    const remarkId = $("#fRemark").value; if(remarkId && remarkId!=="ALL") p.append("remark_id", remarkId);
-    const currency = $("#fCurrency").value; if(currency && currency!=="ALL") p.append("currency", currency);
-    const status = $("#fStatus").value; if(status && status!=="ALL") p.append("status", status);
-    const from = $("#fFrom").value; if(from && from!=="ALL") p.append("from", from);
-    const to = $("#fTo").value; if(to && to!=="ALL") p.append("to", to);
-    const dr = $("#fDate").value; if(dr) p.append("daterange", dr);
-    const data = await api("{% url 'dashboard:api-invoices' %}?"+p.toString());
+    const product = $("#fProduct").value;
+    if (product && product !== "ALL") p.append("product", product);
+    const remarkId = $("#fRemark").value;
+    if (remarkId && remarkId !== "ALL") p.append("remark_id", remarkId);
+    const currency = $("#fCurrency").value;
+    if (currency && currency !== "ALL") p.append("currency", currency);
+    const status = $("#fStatus").value;
+    if (status && status !== "ALL") p.append("status", status);
+    const from = $("#fFrom").value;
+    if (from && from !== "ALL") p.append("from", from);
+    const to = $("#fTo").value;
+    if (to && to !== "ALL") p.append("to", to);
+    const dr = $("#fDate").value;
+    if (dr) p.append("daterange", dr);
+    const data = await api("{% url 'dashboard:api-invoices' %}?" + p.toString());
     rowsData = data.items || [];
     renderTable();
   }
 
   $("#fSearch").onclick = queryTable;
-  $("#fClean").onclick = ()=>{ 
-    $$(".filters .sel").forEach(s=>s.selectedIndex=0); 
-    $("#fDate").value=""; 
-    queryTable(); 
+  $("#fClean").onclick = () => {
+    $$(".filters .sel").forEach(s => s.selectedIndex = 0);
+    $("#fDate").value = "";
+    queryTable();
   };
 
   // Export to Excel
-  $("#btnExport").onclick = async ()=>{
+  $("#btnExport").onclick = async () => {
     const p = new URLSearchParams();
-    const product = $("#fProduct").value; if(product && product!=="ALL") p.append("product", product);
-    const remarkId = $("#fRemark").value; if(remarkId && remarkId!=="ALL") p.append("remark_id", remarkId);
-    const currency = $("#fCurrency").value; if(currency && currency!=="ALL") p.append("currency", currency);
-    const status = $("#fStatus").value; if(status && status!=="ALL") p.append("status", status);
-    const from = $("#fFrom").value; if(from && from!=="ALL") p.append("from", from);
-    const to = $("#fTo").value; if(to && to!=="ALL") p.append("to", to);
-    const dr = $("#fDate").value; if(dr) p.append("daterange", dr);
-    
+    const product = $("#fProduct").value;
+    if (product && product !== "ALL") p.append("product", product);
+    const remarkId = $("#fRemark").value;
+    if (remarkId && remarkId !== "ALL") p.append("remark_id", remarkId);
+    const currency = $("#fCurrency").value;
+    if (currency && currency !== "ALL") p.append("currency", currency);
+    const status = $("#fStatus").value;
+    if (status && status !== "ALL") p.append("status", status);
+    const from = $("#fFrom").value;
+    if (from && from !== "ALL") p.append("from", from);
+    const to = $("#fTo").value;
+    if (to && to !== "ALL") p.append("to", to);
+    const dr = $("#fDate").value;
+    if (dr) p.append("daterange", dr);
+
     try {
-      const response = await fetch("{% url 'dashboard:api-export-excel' %}?"+p.toString());
+      const response = await fetch("{% url 'dashboard:api-export-excel' %}?" + p.toString());
       if (!response.ok) throw new Error('Export failed');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -564,53 +428,62 @@
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       exportCounter++;
-    } catch(e) {
+    } catch (e) {
       alert('Failed to export: ' + e.message);
     }
   };
 
-  (async()=>{ await loadFilters(); await queryTable(); })();
+  (async () => {
+    await loadFilters();
+    await queryTable();
+  })();
 
   // Row actions
   $("#openUpload").addEventListener("click", openCreateModal);
-  
-  body.addEventListener("click", (e)=>{
+
+  body.addEventListener("click", (e) => {
     const t = e.target;
-    if(t.dataset.edit){ openEditModal(parseInt(t.dataset.edit)); }
-    if(t.dataset.del){ delInvoice(parseInt(t.dataset.del)); }
-    if(t.dataset.status){ openStatusPop(t, parseInt(t.dataset.status)); }
+    if (t.dataset.edit) {
+      openEditModal(parseInt(t.dataset.edit));
+    }
+    if (t.dataset.del) {
+      delInvoice(parseInt(t.dataset.del));
+    }
+    if (t.dataset.status) {
+      openStatusPop(t, parseInt(t.dataset.status));
+    }
   });
 
   // Status pop
   const statusPop = $("#statusPop");
-  
-  function openStatusPop(anchor, id){
-    const row = rowsData.find(x=>x.id===id); 
-    if(!row) return;
-    
-    const all = ["Unpaid","Progress","Paid by MIMS Recoverable", "Paid by MIMS Expense", "Paid by Fund"].filter(s=>s!==row.status);
-    statusPop.innerHTML = all.map(s=>`<button data-set="${id}|${s}">${s}</button>`).join("");
-    
+
+  function openStatusPop(anchor, id) {
+    const row = rowsData.find(x => x.id === id);
+    if (!row) return;
+
+    const all = ["Unpaid", "Progress", "Paid by MIMS Recoverable", "Paid by MIMS Expense", "Paid by Fund"].filter(s => s !== row.status);
+    statusPop.innerHTML = all.map(s => `<button data-set="${id}|${s}">${s}</button>`).join("");
+
     const r = anchor.getBoundingClientRect();
     statusPop.style.left = (r.left - 60) + "px";
     statusPop.style.top = (r.bottom + 8) + "px";
     statusPop.style.display = "block";
   }
-  
-  document.addEventListener("click", (e)=>{
-    if(statusPop.style.display==="block" && !statusPop.contains(e.target) && !e.target.dataset.status){
-      statusPop.style.display="none";
+
+  document.addEventListener("click", (e) => {
+    if (statusPop.style.display === "block" && !statusPop.contains(e.target) && !e.target.dataset.status) {
+      statusPop.style.display = "none";
     }
-    
-    if(e.target.dataset.set){
+
+    if (e.target.dataset.set) {
       const [id, stat] = e.target.dataset.set.split("|");
       fetch(`/dashboard/api/invoice/${id}/status/`, {
-        method:"POST", 
-        headers:{'X-CSRFToken':'{{ csrf_token }}'}, 
-        body:new URLSearchParams({status:stat})
-      }).then(()=>{ 
-        statusPop.style.display="none"; 
-        queryTable(); 
+        method: "POST",
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: new URLSearchParams({ status: stat })
+      }).then(() => {
+        statusPop.style.display = "none";
+        queryTable();
       });
     }
   });
@@ -627,70 +500,72 @@
   const fileTrash = $("#fileTrash");
   const dzCenter = $("#dzCenter");
 
-  $("#selectFile").onclick = ()=>fileInput.click();
-  
-  $("#dropzone").addEventListener("dragover", e=>{ e.preventDefault(); });
-  
-  $("#dropzone").addEventListener("drop", e=>{
+  $("#selectFile").onclick = () => fileInput.click();
+
+  $("#dropzone").addEventListener("dragover", e => {
     e.preventDefault();
-    if(e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-  });
-  
-  fileInput.addEventListener("change", ()=>{ 
-    if(fileInput.files[0]) handleFile(fileInput.files[0]);
-  });
-  
-  fileTrash.addEventListener("click", ()=>{ 
-    fileInput.value=""; 
-    filePreview.classList.add("hidden"); 
-    dzCenter.classList.remove("hidden"); 
   });
 
-  function handleFile(f){
+  $("#dropzone").addEventListener("drop", e => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  fileTrash.addEventListener("click", () => {
+    fileInput.value = "";
+    filePreview.classList.add("hidden");
+    dzCenter.classList.remove("hidden");
+  });
+
+  function handleFile(f) {
     fileName.textContent = f.name;
-    fileMeta.textContent = `${(f.size/1024).toFixed(0)} KB • Completed`;
-    
+    fileMeta.textContent = `${(f.size / 1024).toFixed(0)} KB • Completed`;
+
     // Detect file type and set badge
     const ext = f.name.split('.').pop().toLowerCase();
-    if(ext === 'pdf') {
+    if (ext === 'pdf') {
       fileBadge.textContent = 'PDF';
       fileBadge.className = 'pdf-badge';
-    } else if(ext === 'doc' || ext === 'docx') {
+    } else if (ext === 'doc' || ext === 'docx') {
       fileBadge.textContent = 'WORD';
       fileBadge.className = 'word-badge';
     } else {
       fileBadge.textContent = 'FILE';
       fileBadge.className = 'pdf-badge';
     }
-    
+
     filePreview.classList.remove("hidden");
     dzCenter.classList.add("hidden");
   }
 
-  function openCreateModal(){
+  function openCreateModal() {
     modalTitle.textContent = "Please fill the credential of the file";
     submitBtn.textContent = "Upload";
-    fileInput.value=""; 
-    filePreview.classList.add("hidden"); 
+    fileInput.value = "";
+    filePreview.classList.add("hidden");
     dzCenter.classList.remove("hidden");
-    $("#mProduct").value="";
-    $("#mDate").value= new Date().toISOString().slice(0,10);
-    $("#mRemark").value="-";
-    $("#mNumber").value="";
-    $("#mAmount").value="";
-    $("#mCurrency").value="IDR";
-    $("#mStatus").value="Unpaid";
-    $("#mFrom").value=""; 
-    $("#mTo").value="";
-    backdrop.style.display="flex";
-    backdrop.dataset.mode="create";
-    backdrop.dataset.id="";
+    $("#mProduct").value = "";
+    $("#mDate").value = new Date().toISOString().slice(0, 10);
+    $("#mRemark").value = "-";
+    $("#mNumber").value = "";
+    $("#mAmount").value = "";
+    $("#mCurrency").value = "IDR";
+    $("#mStatus").value = "Unpaid";
+    $("#mFrom").value = "";
+    $("#mTo").value = "";
+    backdrop.style.display = "flex";
+    backdrop.dataset.mode = "create";
+    backdrop.dataset.id = "";
   }
 
-  async function openEditModal(id){
-    const r = rowsData.find(x=>x.id===id); 
-    if(!r) return;
-    
+  async function openEditModal(id) {
+    const r = rowsData.find(x => x.id === id);
+    if (!r) return;
+
     modalTitle.textContent = "Please fill the credential of the file";
     submitBtn.textContent = "Update";
     fileName.textContent = `Invoice #${r.invoice_number}`;
@@ -700,54 +575,54 @@
     filePreview.classList.remove("hidden");
     dzCenter.classList.add("hidden");
 
-    $("#mProduct").value=r.product;
-    $("#mDate").value=r.date;
+    $("#mProduct").value = r.product;
+    $("#mDate").value = r.date;
     await loadRemarksForModal(r.remark);
-    $("#mNumber").value=r.invoice_number;
-    $("#mAmount").value=r.amount;
-    $("#mCurrency").value=r.currency;
-    $("#mStatus").value=r.status;
-    $("#mFrom").value=r.from_party; 
-    $("#mTo").value=r.to_party;
-    backdrop.style.display="flex";
-    backdrop.dataset.mode="edit";
-    backdrop.dataset.id=id;
+    $("#mNumber").value = r.invoice_number;
+    $("#mAmount").value = r.amount;
+    $("#mCurrency").value = r.currency;
+    $("#mStatus").value = r.status;
+    $("#mFrom").value = r.from_party;
+    $("#mTo").value = r.to_party;
+    backdrop.style.display = "flex";
+    backdrop.dataset.mode = "edit";
+    backdrop.dataset.id = id;
   }
-  
-  $("#modalClose").onclick = ()=>backdrop.style.display="none";
 
-  async function loadRemarksForModal(selectedText=null){
+  $("#modalClose").onclick = () => backdrop.style.display = "none";
+
+  async function loadRemarksForModal(selectedText = null) {
     const j = await api("{% url 'dashboard:api-remarks-list' %}");
     const sel = $("#mRemark");
     sel.innerHTML = '<option value="-">-</option>';
-    j.items.forEach(it=>{
+    j.items.forEach(it => {
       const o = document.createElement("option");
-      o.value = it.id; 
+      o.value = it.id;
       o.textContent = it.name;
       sel.appendChild(o);
     });
-    if(selectedText){ 
-      [...sel.options].forEach(o=>{ 
-        if(o.textContent===selectedText) sel.value=o.value; 
-      }); 
+    if (selectedText) {
+      [...sel.options].forEach(o => {
+        if (o.textContent === selectedText) sel.value = o.value;
+      });
     }
   }
-  
+
   loadRemarksForModal();
 
-  $("#mAmount").addEventListener("blur", e=>{
-  if(e.target.value) {
-    e.target.value = e.target.value.replace(',', '.');
-  }
- });
-
-  submitBtn.addEventListener("click", async ()=>{
-    const remark = $("#mRemark").value;
-    if(remark === "-" || !remark){ 
-      alert("Please choose invoice remark."); 
-      return; 
+  $("#mAmount").addEventListener("blur", e => {
+    if (e.target.value) {
+      e.target.value = e.target.value.replace(',', '.');
     }
-    
+  });
+
+  submitBtn.addEventListener("click", async () => {
+    const remark = $("#mRemark").value;
+    if (remark === "-" || !remark) {
+      alert("Please choose invoice remark.");
+      return;
+    }
+
     const fd = new FormData();
     fd.append("product", $("#mProduct").value.trim());
     fd.append("date", $("#mDate").value);
@@ -759,37 +634,37 @@
     fd.append("from_party", $("#mFrom").value.trim());
     fd.append("to_party", $("#mTo").value.trim());
 
-    if(backdrop.dataset.mode==="create"){
-      if(!fileInput.files[0]){ 
-        alert("File is required."); 
-        return; 
+    if (backdrop.dataset.mode === "create") {
+      if (!fileInput.files[0]) {
+        alert("File is required.");
+        return;
       }
       fd.append("file", fileInput.files[0]);
       await fetch("{% url 'dashboard:api-invoice-create' %}", {
-        method:"POST", 
-        headers:{'X-CSRFToken':'{{ csrf_token }}'}, 
-        body:fd
+        method: "POST",
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: fd
       });
-    }else{
+    } else {
       const id = backdrop.dataset.id;
-      if(fileInput.files[0]) fd.append("file", fileInput.files[0]);
+      if (fileInput.files[0]) fd.append("file", fileInput.files[0]);
       await fetch(`/dashboard/api/invoice/${id}/update/`, {
-        method:"POST", 
-        headers:{'X-CSRFToken':'{{ csrf_token }}'}, 
-        body:fd
+        method: "POST",
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: fd
       });
     }
-    
-    backdrop.style.display="none";
+
+    backdrop.style.display = "none";
     await loadFilters();
     await queryTable();
   });
 
-  async function delInvoice(id){
-    if(!confirm("Delete this invoice and its file?")) return;
+  async function delInvoice(id) {
+    if (!confirm("Delete this invoice and its file?")) return;
     await fetch(`/dashboard/api/invoice/${id}/delete/`, {
-      method:"POST", 
-      headers:{'X-CSRFToken':'{{ csrf_token }}'}
+      method: "POST",
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
     });
     await loadFilters();
     await queryTable();
@@ -797,31 +672,31 @@
 
   // Remarks sub modal
   const rb = $("#remarksBack");
-  
-  $("#openRemarkModal").onclick = async ()=>{ 
-    rb.style.display="flex"; 
-    await refreshRemarkList(); 
-  };
-  
-  $("#remarksClose").onclick = ()=> rb.style.display="none";
-  
-  $("#remarksDone").onclick = async ()=>{ 
-    rb.style.display="none"; 
-    await loadRemarksForModal(); 
+
+  $("#openRemarkModal").onclick = async () => {
+    rb.style.display = "flex";
+    await refreshRemarkList();
   };
 
-  async function refreshRemarkList(){
+  $("#remarksClose").onclick = () => rb.style.display = "none";
+
+  $("#remarksDone").onclick = async () => {
+    rb.style.display = "none";
+    await loadRemarksForModal();
+  };
+
+  async function refreshRemarkList() {
     const j = await api("{% url 'dashboard:api-remarks-list' %}");
-    const ul = $("#remarksList"); 
-    ul.innerHTML="";
-    
-    j.items.forEach(it=>{
+    const ul = $("#remarksList");
+    ul.innerHTML = "";
+
+    j.items.forEach(it => {
       const li = document.createElement("li");
-      li.style.display="flex"; 
-      li.style.alignItems="center"; 
-      li.style.gap="8px"; 
-      li.style.padding="8px 10px"; 
-      li.dataset.id=it.id;
+      li.style.display = "flex";
+      li.style.alignItems = "center";
+      li.style.gap = "8px";
+      li.style.padding = "8px 10px";
+      li.dataset.id = it.id;
       li.innerHTML = `<span style="flex:1">${it.name}</span>
         <button class="btn" data-up="${it.id}" style="padding:4px 8px">↑</button>
         <button class="btn" data-down="${it.id}" style="padding:4px 8px">↓</button>
@@ -829,92 +704,94 @@
       ul.appendChild(li);
     });
   }
-  
-  $("#addRemark").onclick = async ()=>{
-    const name = $("#newRemark").value.trim(); 
-    if(!name) return;
-    
-    try{
+
+  $("#addRemark").onclick = async () => {
+    const name = $("#newRemark").value.trim();
+    if (!name) return;
+
+    try {
       await fetch("{% url 'dashboard:api-remarks-add' %}", {
-        method:"POST", 
-        headers:{'X-CSRFToken':'{{ csrf_token }}'}, 
-        body:new URLSearchParams({name})
+        method: "POST",
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: new URLSearchParams({ name })
       });
       $("#newRemark").value = "";
-      await refreshRemarkList(); 
+      await refreshRemarkList();
       await loadRemarksForModal();
-    }catch(e){ 
-      alert(e.msg || "Remark exists or invalid"); 
+    } catch (e) {
+      alert(e.msg || "Remark exists or invalid");
     }
   };
-  
-  $("#remarksList").addEventListener("click", async (e)=>{
+
+  $("#remarksList").addEventListener("click", async (e) => {
     const up = e.target.dataset.up;
     const down = e.target.dataset.down;
     const deleteId = e.target.dataset.delete;
-    
+
     // Handle delete
-    if(deleteId) {
-      if(!confirm("Delete this remark? This will only work if no invoices are using it.")) return;
+    if (deleteId) {
+      if (!confirm("Delete this remark? This will only work if no invoices are using it.")) return;
       try {
         const res = await fetch(`/dashboard/api/remarks/${deleteId}/delete/`, {
-          method:"POST", 
-          headers:{'X-CSRFToken':'{{ csrf_token }}'}
+          method: "POST",
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
         });
         const data = await res.json();
-        if(!data.ok) {
+        if (!data.ok) {
           alert(data.msg || "Cannot delete remark");
           return;
         }
-        await refreshRemarkList(); 
+        await refreshRemarkList();
         await loadRemarksForModal();
-      } catch(e) {
+      } catch (e) {
         alert("Error deleting remark");
       }
       return;
     }
-    
+
     // Handle reorder
-    if(!up && !down) return;
-    
-    const items = [...$("#remarksList").children].map(li=>li.dataset.id);
+    if (!up && !down) return;
+
+    const items = [...$("#remarksList").children].map(li => li.dataset.id);
     const idx = items.indexOf(up || down);
-    
-    if(up && idx>0){ 
-      [items[idx-1], items[idx]] = [items[idx], items[idx-1]]; 
+
+    if (up && idx > 0) {
+      [items[idx - 1], items[idx]] = [items[idx], items[idx - 1]];
     }
-    if(down && idx<items.length-1){ 
-      [items[idx], items[idx+1]] = [items[idx+1], items[idx]]; 
+    if (down && idx < items.length - 1) {
+      [items[idx], items[idx + 1]] = [items[idx + 1], items[idx]];
     }
-    
-    const body = new URLSearchParams(); 
-    items.forEach(id=>body.append("order[]", id));
-    
+
+    const body = new URLSearchParams();
+    items.forEach(id => body.append("order[]", id));
+
     await fetch("{% url 'dashboard:api-remarks-reorder' %}", {
-      method:"POST", 
-      headers:{'X-CSRFToken':'{{ csrf_token }}'}, 
+      method: "POST",
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
       body
     });
-    
-    await refreshRemarkList(); 
+
+    await refreshRemarkList();
     await loadRemarksForModal();
   });
 
-  document.addEventListener("click",(e)=>{ 
-    if(e.target.id==="emptyZone") openCreateModal(); 
+  document.addEventListener("click", (e) => {
+    if (e.target.id === "emptyZone") openCreateModal();
   });
 
   /* ---------------- Charts ---------------- */
   let chartInstances = {};
-  
-  function destroyCharts(){
-    Object.values(chartInstances).forEach(ch => { 
-      try{ ch.destroy(); }catch(_){} 
+
+  function destroyCharts() {
+    Object.values(chartInstances).forEach(ch => {
+      try {
+        ch.destroy();
+      } catch (_) { }
     });
     chartInstances = {};
   }
 
-  function renderCharts(){
+  function renderCharts() {
     destroyCharts();
 
     // Get currency for each chart
@@ -929,99 +806,98 @@
     const byStatus = {};
     const byReceiver = {};
     const byMonth = {};
-    
-    rowsData.forEach(r=>{
-      const amt = Number((r.amount||'0').toString().replace(/,/g,'')) || 0;
+
+    rowsData.forEach(r => {
+      const amt = Number((r.amount || '0').toString().replace(/,/g, '')) || 0;
       const curr = r.currency;
       const rk = r.remark || '-';
       const st = r.status || '-';
       const to = r.to_party || '-';
-      const m = (r.date||'').slice(0,7) || '-';
+      const m = (r.date || '').slice(0, 7) || '-';
 
       // Convert to target currencies
       const amtRemark = convertCurrency(amt, curr, currencies.remark);
       const amtReceiver = convertCurrency(amt, curr, currencies.receiver);
       const amtMonth = convertCurrency(amt, curr, currencies.month);
 
-      byRemark[rk] = (byRemark[rk]||0) + amtRemark;
-      byStatus[st] = (byStatus[st]||0) + 1;
-      byReceiver[to] = (byReceiver[to]||0) + amtReceiver;
-      byMonth[m] = (byMonth[m]||0) + amtMonth;
+      byRemark[rk] = (byRemark[rk] || 0) + amtRemark;
+      byStatus[st] = (byStatus[st] || 0) + 1;
+      byReceiver[to] = (byReceiver[to] || 0) + amtReceiver;
+      byMonth[m] = (byMonth[m] || 0) + amtMonth;
     });
 
-    const ctx1 = $("#barRemark"); 
+    const ctx1 = $("#barRemark");
     const ctx2 = $("#pieStatus");
-    const ctx3 = $("#barReceiver"); 
+    const ctx3 = $("#barReceiver");
     const ctx4 = $("#lineMonth");
 
     chartInstances.barRemark = new Chart(ctx1, {
       type: 'bar',
-      data: { 
+      data: {
         labels: Object.keys(byRemark),
-        datasets: [{label:`Amount (${currencies.remark})`, data:Object.values(byRemark)}]
+        datasets: [{ label: `Amount (${currencies.remark})`, data: Object.values(byRemark) }]
       },
-      options: { 
-        responsive:true, 
-        maintainAspectRatio:false,
-        plugins:{ legend:{display:true} },
-        scales:{ y:{ beginAtZero:true } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true } },
+        scales: { y: { beginAtZero: true } }
       }
     });
 
     chartInstances.pieStatus = new Chart(ctx2, {
-      type:'pie',
-      data:{ 
-        labels:Object.keys(byStatus), 
-        datasets:[{data:Object.values(byStatus)}]
+      type: 'pie',
+      data: {
+        labels: Object.keys(byStatus),
+        datasets: [{ data: Object.values(byStatus) }]
       },
-      options:{ 
-        responsive:true, 
-        maintainAspectRatio:false, 
-        plugins:{ legend:{position:'top'} } 
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } }
       }
     });
 
-    const recvEntries = Object.entries(byReceiver).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const recvEntries = Object.entries(byReceiver).sort((a, b) => b[1] - a[1]).slice(0, 10);
     chartInstances.barReceiver = new Chart(ctx3, {
-      type:'bar',
-      data:{ 
-        labels:recvEntries.map(e=>e[0]), 
-        datasets:[{label:`Amount (${currencies.receiver})`, data:recvEntries.map(e=>e[1])}]
+      type: 'bar',
+      data: {
+        labels: recvEntries.map(e => e[0]),
+        datasets: [{ label: `Amount (${currencies.receiver})`, data: recvEntries.map(e => e[1]) }]
       },
-      options:{ 
-        responsive:true, 
-        maintainAspectRatio:false, 
-        indexAxis:'y',
-        scales:{ x:{ beginAtZero:true } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        scales: { x: { beginAtZero: true } }
       }
     });
 
-    const mEntries = Object.entries(byMonth).filter(([k])=>k!=='-').sort((a,b)=>a[0].localeCompare(b[0]));
+    const mEntries = Object.entries(byMonth).filter(([k]) => k !== '-').sort((a, b) => a[0].localeCompare(b[0]));
     chartInstances.lineMonth = new Chart(ctx4, {
-      type:'line',
-      data:{ 
-        labels:mEntries.map(e=>e[0]), 
-        datasets:[{
-          label:`Amount (${currencies.month})`, 
-          data:mEntries.map(e=>e[1]), 
-          tension:.25, 
-          fill:false
+      type: 'line',
+      data: {
+        labels: mEntries.map(e => e[0]),
+        datasets: [{
+          label: `Amount (${currencies.month})`,
+          data: mEntries.map(e => e[1]),
+          tension: .25,
+          fill: false
         }]
       },
-      options:{ 
-        responsive:true, 
-        maintainAspectRatio:false,
-        scales:{ y:{ beginAtZero:true } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } }
       }
     });
   }
 
   // Currency change listeners for charts
   document.addEventListener('change', (e) => {
-    if(e.target.classList.contains('chart-currency')) {
+    if (e.target.classList.contains('chart-currency')) {
       renderCharts();
     }
   });
 </script>
-</body>
-</html>
+{% endblock %}

@@ -24,6 +24,7 @@ urlpatterns = [
     path("", include("landing.urls")),
     path('auth/', include('authen.urls')),
     path('dashboard/', include(('dashboard.urls', 'dashboard'), namespace='dashboard')),
+    path("log/", include("log.urls", namespace="log")),
 ] 
 
 if settings.DEBUG:

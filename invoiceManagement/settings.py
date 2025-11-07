@@ -45,9 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'landing',
     'authen',
-    'sidebar',
     'dashboard',
-    'sidebar',
+    'log',
 
 ]
 
@@ -66,7 +65,7 @@ ROOT_URLCONF = 'invoiceManagement.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -131,7 +130,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [BASE_DIR / "static",]
 
 # HANYA untuk production / jika kamu ingin pakai `collectstatic`
 STATIC_ROOT = BASE_DIR / "staticfiles"

@@ -12,7 +12,11 @@ from django.db.models.functions import Lower
 
 from .models import Invoice, InvoiceRemarkCategory, STATUS_CHOICES, CURRENCY_CHOICES
 
-# Import untuk Excel export
+# >>> ADD: logging util & enums
+from log.utils import log_action
+from log.models import LogEntry
+
+# Import for Excel export
 try:
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment
@@ -149,7 +153,7 @@ def api_export_excel(request):
     if not EXCEL_AVAILABLE:
         return JsonResponse({"error": "openpyxl not installed"}, status=500)
     
-    # Get filtered queryset (same logic as api_invoices)
+    # Get filtered queryset
     qs = Invoice.objects.all()
     
     product = request.GET.get("product") or ""
@@ -181,7 +185,7 @@ def api_export_excel(request):
     ws = wb.active
     ws.title = "Invoice Summary"
     
-    # Header style (blue background, white text)
+    # Header style
     header_fill = PatternFill(start_color="102B86", end_color="102B86", fill_type="solid")
     header_font = Font(color="FFFFFF", bold=True)
     header_alignment = Alignment(horizontal="center", vertical="center")
@@ -233,6 +237,7 @@ def api_export_excel(request):
     
     return response
 
+# ---------- API: create/update/delete/status (with logging) ----------
 @login_required
 @require_http_methods(["POST"])
 def api_invoice_create(request):
@@ -266,6 +271,16 @@ def api_invoice_create(request):
         amount=amount, currency=currency, status=status, from_party=from_party,
         to_party=to_party, file=f
     )
+
+    # >>> LOG: create
+    log_action(
+        request.user,
+        action=LogEntry.Action.CREATE_INVOICE,
+        entity_type=LogEntry.Entity.INVOICE,
+        entity_id=inv.id,
+        entity_label=inv.invoice_number,
+        details=f"Create invoice {invoice_number} ({currency} {amount}) to {to_party}"
+    )
     return JsonResponse({"ok": True, "id": inv.pk})
 
 @login_required
@@ -286,6 +301,11 @@ def api_invoice_update(request, pk):
     if not remark_id or remark_id == "-" or remark_id == "0":
         return JsonResponse({"ok": False, "msg": "Please choose invoice remark."}, status=400)
 
+
+    old_status = inv.status
+    old_amount = inv.amount
+    old_currency = inv.currency
+
     inv.product = product
     inv.date = datetime.strptime(date_str, "%Y-%m-%d").date()
     inv.remark = get_object_or_404(InvoiceRemarkCategory, pk=int(remark_id))
@@ -301,13 +321,42 @@ def api_invoice_update(request, pk):
         inv.file = f
     inv.save()
 
+    # >>> LOG: update
+    detail_parts = []
+    if str(old_amount) != str(inv.amount) or old_currency != inv.currency:
+        detail_parts.append(f"amount {old_currency} {old_amount} → {inv.currency} {inv.amount}")
+    if old_status != inv.status:
+        detail_parts.append(f"status {old_status} → {inv.status}")
+    extra = "; ".join(detail_parts) if detail_parts else "update invoice details"
+    log_action(
+        request.user,
+        action=LogEntry.Action.UPDATE_INVOICE,
+        entity_type=LogEntry.Entity.INVOICE,
+        entity_id=inv.id,
+        entity_label=inv.invoice_number,
+        details=extra
+    )
+
     return JsonResponse({"ok": True})
 
 @login_required
 @require_http_methods(["POST"])
 def api_invoice_delete(request, pk):
     inv = get_object_or_404(Invoice, pk=pk)
+    inv_number = inv.invoice_number
+    inv_currency = inv.currency
+    inv_amount = inv.amount
     inv.delete()
+
+    # >>> LOG: delete
+    log_action(
+        request.user,
+        action=LogEntry.Action.DELETE_INVOICE,
+        entity_type=LogEntry.Entity.INVOICE,
+        entity_id=pk,
+        entity_label=inv_number,
+        details=f"Delete invoice {inv_number} ({inv_currency} {inv_amount})"
+    )
     return JsonResponse({"ok": True})
 
 @login_required
@@ -318,10 +367,22 @@ def api_invoice_status(request, pk):
     legal = [s for s, _ in STATUS_CHOICES]
     if new_status not in legal:
         return JsonResponse({"ok": False, "msg": "Invalid status"}, status=400)
+    old_status = inv.status
     inv.status = new_status
     inv.save()
+
+    # >>> LOG: change status
+    log_action(
+        request.user,
+        action=LogEntry.Action.CHANGE_STATUS,
+        entity_type=LogEntry.Entity.INVOICE,
+        entity_id=inv.id,
+        entity_label=inv.invoice_number,
+        details=f"Change status {old_status} → {new_status}"
+    )
     return JsonResponse({"ok": True})
 
+# ---------- API: remarks ----------
 @login_required
 def api_remarks_list(request):
     data = list(InvoiceRemarkCategory.objects.order_by("order", "name")
@@ -340,13 +401,23 @@ def api_remarks_add(request):
 
     max_order = InvoiceRemarkCategory.objects.aggregate(m=Max("order"))["m"] or 0
     r = InvoiceRemarkCategory.objects.create(name=name, order=max_order + 1)
+
+    # >>> LOG: create remark
+    log_action(
+        request.user,
+        action=LogEntry.Action.CREATE_REMARK,
+        entity_type=LogEntry.Entity.REMARK,
+        entity_id=r.id,
+        entity_label=r.name,
+        details=f"Create remark category '{r.name}'"
+    )
     return JsonResponse({"ok": True, "id": r.id, "name": r.name})
 
 @login_required
 @require_http_methods(["POST"])
 def api_remarks_delete(request, pk):
-    """Delete remark only if no invoices are using it"""
     remark = get_object_or_404(InvoiceRemarkCategory, pk=pk)
+    old_name = remark.name
     
     # Check if any invoices are using this remark
     usage_count = Invoice.objects.filter(remark=remark).count()
@@ -358,6 +429,16 @@ def api_remarks_delete(request, pk):
         }, status=400)
     
     remark.delete()
+
+    # >>> LOG: delete remark
+    log_action(
+        request.user,
+        action=LogEntry.Action.DELETE_REMARK,
+        entity_type=LogEntry.Entity.REMARK,
+        entity_id=pk,
+        entity_label=old_name,
+        details=f"Delete remark category '{old_name}'"
+    )
     return JsonResponse({"ok": True})
 
 @login_required
@@ -373,8 +454,17 @@ def api_remarks_reorder(request):
             i += 1
         except Exception:
             continue
+
+    # >>> LOG: reorder remark
+    log_action(
+        request.user,
+        action=LogEntry.Action.REORDER_REMARK,
+        entity_type=LogEntry.Entity.REMARK,
+        details="Reorder remark categories"
+    )
     return JsonResponse({"ok": True})
 
+# ---------- Download & Charts ----------
 @login_required
 def download_invoice(request, pk: int):
     inv = get_object_or_404(Invoice, pk=pk)
@@ -386,7 +476,6 @@ def download_invoice(request, pk: int):
 
 @login_required
 def api_charts(request):
-    """Get chart data with optional currency conversion"""
     target_currency = request.GET.get('currency', 'IDR')
     
     qs_status = (

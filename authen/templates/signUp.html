@@ -137,7 +137,7 @@
 
             <label>Password</label>
             <div class="pwd-wrap">
-              <input id="pwd1" class="input" type="password" name="password" placeholder="***********" required>
+              <input id="pwd1" class="input" type="password" name="password" placeholder="Enter Your Password Here" required>
               <button id="toggleBtn1" class="pwd-toggle" type="button" aria-label="Show password">
                 <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
@@ -179,7 +179,7 @@
 
 <script>
   (function(){
-    // Toggle untuk password 1
+    // Toggle for password 1
     const input1 = document.getElementById('pwd1');
     const btn1 = document.getElementById('toggleBtn1');
     const eyeOpen1 = btn1.querySelector('.eye-open');
@@ -193,7 +193,7 @@
       btn1.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
     });
 
-    // Toggle untuk password 2
+    // Toggle for password 2
     const input2 = document.getElementById('pwd2');
     const btn2 = document.getElementById('toggleBtn2');
     const eyeOpen2 = btn2.querySelector('.eye-open');
