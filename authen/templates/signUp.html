@@ -1,0 +1,212 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sign Up – MIMS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{font-family:"Segoe UI",Roboto,Arial,Helvetica,sans-serif;background:#e9eaec}
+
+    /* ==== PAGE WRAPPER (full viewport) ==== */
+    .page{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    .shell{
+      width:100%;
+      background:#f5f5f5;
+      overflow:hidden;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* ==== NAVBAR ==== */
+    .auth-nav{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px 18px;background:#fff;border-bottom:1px solid #e2e6eb;
+    }
+    .auth-center{position:absolute;left:50%;transform:translateX(-50%);}
+    .auth-logo{height:30px}
+    .nav-btn{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:10px 18px;border-radius:10px;border:1.5px solid #cfd5dc;
+      background:#f7fafc;color:#111827;text-decoration:none;font-weight:600;
+      transition:transform .15s ease, filter .15s ease, background .15s ease;
+    }
+    .nav-btn:hover{background:#e9edf2;transform:translateY(-1px)}
+
+    /* ==== CONTENT GRID ==== */
+    .content{
+      flex:1;
+      display:grid;grid-template-columns:1fr 1fr;min-height:0;
+    }
+    .left{
+      background:#f0f0f0 url("{% static 'background login register.jpg' %}") center/cover no-repeat;
+    }
+    .right{
+      background:#efefef;display:flex;align-items:center;justify-content:center;
+      padding:48px 50px;
+    }
+    .card{width:100%;max-width:560px}
+    h1{font-size:28px;letter-spacing:1.5px;text-align:center;margin-bottom:8px}
+    .sub{font-size:12px;color:#6b7280;text-align:center;margin-bottom:22px}
+
+    label{font-size:12px;color:#111827;display:block;margin:12px 0 6px}
+    .input{
+      width:100%;height:44px;border-radius:10px;border:1px solid #d3d8df;
+      padding:0 14px;background:#fff;outline:none;
+    }
+
+    /* ==== PASSWORD FIELD + TOGGLE ICON ==== */
+    .pwd-wrap{position:relative}
+    .pwd-toggle{
+      position:absolute;right:10px;top:50%;transform:translateY(-50%);
+      width:28px;height:28px;border:none;background:transparent;cursor:pointer;
+      display:grid;place-items:center;color:#6b7280;
+    }
+    .pwd-toggle svg{width:20px;height:20px;display:block}
+    .pwd-wrap .input{padding-right:44px}
+
+    /* ==== SUBMIT BUTTON (TANPA SHADOW MERAH + HOVER SEPERTI NAV-BTN) ==== */
+    .submit{
+      margin-top:22px;width:100%;height:48px;border-radius:10px;border:none;
+      background:#0f2b86;color:#fff;font-weight:700;cursor:pointer;
+      transition:transform .15s ease, filter .15s ease, background .15s ease;
+    }
+    .submit:hover{
+      background:#0a1f5f;
+      transform:translateY(-1px);
+      filter:brightness(1.05);
+    }
+    .submit:active{transform:translateY(0)}
+
+    /* messages */
+    .msgs{margin-bottom:8px}
+    .msg{padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:6px}
+    .error{background:#fde8e8;color:#9b1c1c;border:1px solid #f8b4b4}
+    .warning{background:#fffbea;color:#8a6d00;border:1px solid #fce588}
+    .success{background:#def7ec;color:#03543f;border:1px solid #31c48d}
+
+    .hint{margin-top:12px;text-align:center;font-size:11px;color:#6b7280}
+    .hint a{color:#0f2b86;text-decoration:none;font-weight:700}
+
+    /* responsive */
+    @media (max-width:1024px){
+      .content{grid-template-columns:1fr}
+      .left{display:none}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="shell">
+    <!-- NAVBAR -->
+    <div class="auth-nav">
+      <a class="nav-btn" href="{% url 'landing' %}">
+        <span>↩</span><span>Back</span>
+      </a>
+      <div class="auth-center"><img class="auth-logo" src="{% static 'mimsLogo.png' %}" alt="mandiri investment"></div>
+      <a class="nav-btn" href="{% url 'authen:sign-in' %}">Sign In</a>
+    </div>
+
+    <!-- MAIN -->
+    <div class="content">
+      <div class="left" aria-hidden="true"></div>
+      <div class="right">
+        <div class="card">
+          <h1>SIGN UP</h1>
+          <div class="sub">Please input your details</div>
+
+          <div class="msgs">
+            {% if messages %}
+              {% for m in messages %}
+                <div class="msg {% if m.tags %}{{ m.tags }}{% endif %}">{{ m }}</div>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <label>Email</label>
+            <input class="input" type="email" name="email" placeholder="Enter your email" required>
+
+            <label>Password</label>
+            <div class="pwd-wrap">
+              <input id="pwd1" class="input" type="password" name="password" placeholder="Enter Your Password Here" required>
+              <button id="toggleBtn1" class="pwd-toggle" type="button" aria-label="Show password">
+                <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-6.94"></path>
+                  <path d="M1 1l22 22"></path>
+                </svg>
+              </button>
+            </div>
+
+            <label>Re-enter Password</label>
+            <div class="pwd-wrap">
+              <input id="pwd2" class="input" type="password" name="password2" placeholder="***********" required>
+              <button id="toggleBtn2" class="pwd-toggle" type="button" aria-label="Show password">
+                <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-6.94"></path>
+                  <path d="M1 1l22 22"></path>
+                </svg>
+              </button>
+            </div>
+
+            <button class="submit" type="submit">Sign up</button>
+          </form>
+
+          <div class="hint">
+            Already have an account? <a href="{% url 'authen:sign-in' %}">Sign in here!</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    // Toggle for password 1
+    const input1 = document.getElementById('pwd1');
+    const btn1 = document.getElementById('toggleBtn1');
+    const eyeOpen1 = btn1.querySelector('.eye-open');
+    const eyeClosed1 = btn1.querySelector('.eye-closed');
+
+    btn1.addEventListener('click', function(){
+      const isHidden = input1.type === 'password';
+      input1.type = isHidden ? 'text' : 'password';
+      eyeOpen1.style.display = isHidden ? 'none' : 'block';
+      eyeClosed1.style.display = isHidden ? 'block' : 'none';
+      btn1.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+
+    // Toggle for password 2
+    const input2 = document.getElementById('pwd2');
+    const btn2 = document.getElementById('toggleBtn2');
+    const eyeOpen2 = btn2.querySelector('.eye-open');
+    const eyeClosed2 = btn2.querySelector('.eye-closed');
+
+    btn2.addEventListener('click', function(){
+      const isHidden = input2.type === 'password';
+      input2.type = isHidden ? 'text' : 'password';
+      eyeOpen2.style.display = isHidden ? 'none' : 'block';
+      eyeClosed2.style.display = isHidden ? 'block' : 'none';
+      btn2.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+  })();
+</script>
+</body>
+</html>

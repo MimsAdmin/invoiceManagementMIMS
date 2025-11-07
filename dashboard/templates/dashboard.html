@@ -1,0 +1,903 @@
+<!-- dashboard/templates/dashboard.html -->
+{% extends 'sidebar.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+  <div class="page-head">
+    <div class="title">Dashboard of Invoice</div>
+    <div class="tabs">
+      <div id="tabTable" class="tab active">Table List</div>
+      <div id="tabChart" class="tab">Diagram Chart</div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters" id="filtersBar">
+      <select id="fProduct" class="sel"></select>
+
+      <div style="position:relative">
+        <input id="fDate" class="sel" readonly placeholder="Date (All)" style="width:170px; cursor:pointer">
+        <div id="rangePop" class="range-pop" style="width:280px">
+          <div class="lbl">Start</div>
+          <input id="rangeStart" type="date" class="ipt" />
+          <div class="lbl">End</div>
+          <input id="rangeEnd" type="date" class="ipt" />
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button class="btn" id="rangeClear" style="flex:1">Clear</button>
+            <button class="btn blue" id="rangeApply" style="flex:1">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <select id="fRemark" class="sel" style="min-width:220px"></select>
+      <select id="fCurrency" class="sel"></select>
+      <select id="fStatus" class="sel"></select>
+      <select id="fFrom" class="sel" style="min-width:160px"></select>
+      <select id="fTo" class="sel" style="min-width:160px"></select>
+
+      <button id="fClean" class="btn">Clear</button>
+      <button id="fSearch" class="btn">Search</button>
+      <button id="btnExport" class="btn green">Export</button>
+      <button id="openUpload" class="btn blue">Upload Invoice</button>
+    </div>
+  </div>
+
+  <!-- TABLE PAGE -->
+  <section id="tablePage" style="flex:1; display:flex; flex-direction:column; overflow-y: auto; padding: 10px;">
+  <div class="table-wrap" style="margin: 0 auto; width: calc(100% - 40px); max-width: 100%; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; height: 400px; max-height: 400px; margin-bottom: 40px;">
+    <div class="table-container" style="overflow-x: auto; overflow-y: hidden; display: flex; flex-direction: column; height: 100%; flex: 1;">
+      <div class="table-inner" style="min-width: 1400px; display: flex; flex-direction: column; height: 100%; flex: 1;">
+        <div class="thead">
+          <div>Product</div>
+          <div>Date</div>
+          <div>Invoice Remarks</div>
+          <div>Invoice Number</div>
+          <div>Amount</div>
+          <div>Currency</div>
+          <div>Status</div>
+          <div>From</div>
+          <div>To</div>
+          <div>Action</div>
+          <div>Download</div>
+        </div>
+        <div class="tbody-wrap" style="flex: 1; overflow-y: scroll; overflow-x: hidden; padding: 0 16px 12px; height: 0; max-height: 344px;">
+          <div id="tableBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  <!-- CHART PAGE -->
+  <section id="chartPage" class="hidden chart-section">
+    <div class="charts" id="chartsWrap">
+      <div class="card">
+        <div class="card-header">
+          <h3>Details of Invoice (Amount per Remark)</h3>
+          <select class="chart-currency">
+            {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="canvas-wrap"><canvas id="barRemark"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Percentage of Invoice by Status</h3>
+        <div class="canvas-wrap"><canvas id="pieStatus"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Top Receivers by Amount</h3>
+          <select class="chart-currency">
+            {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="canvas-wrap"><canvas id="barReceiver"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Amount by Month</h3>
+          <select class="chart-currency">
+            {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="canvas-wrap"><canvas id="lineMonth"></canvas></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Modal: Upload/Update -->
+<div id="backdrop" class="modal-back">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="modalTitle">Please fill the credential of the file</span>
+      <span id="modalClose" class="close-x">✕</span>
+    </div>
+    <div class="modal-body">
+      <div id="dropzone" class="dropzone">
+        <div id="dzCenter" class="dz-center">
+          <div style="text-align:center">
+            <button id="selectFile" class="btn">Select a file</button>
+            <div style="color:#6b7280; font-size:12px; margin-top:8px">Drag and drop a PDF or Word file here</div>
+          </div>
+        </div>
+        <input id="fileInput" type="file" accept="application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" />
+        <div id="filePreview" class="hidden">
+          <div class="dz-file">
+            <span id="fileBadge" class="pdf-badge">PDF</span>
+            <div id="fileName">-</div>
+            <div id="fileMeta" style="color:#6b7280; font-size:12px">Ready</div>
+            <div class="file-ctl" id="fileTrash">🗑</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lbl">Product:</div>
+      <input id="mProduct" class="ipt" placeholder="Product Name" />
+
+      <div class="grid2">
+        <div>
+          <div class="lbl">Date:</div>
+          <input id="mDate" type="date" class="ipt" />
+        </div>
+        <div>
+          <div class="lbl">Invoice Remarks:</div>
+          <div style="display:flex; gap:8px">
+            <select id="mRemark" class="sel2"><option value="-">-</option></select>
+            <button id="openRemarkModal" class="btn" type="button">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="lbl">Invoice Number:</div>
+          <input id="mNumber" class="ipt" placeholder="Invoice Number" />
+        </div>
+        <div>
+          <div class="lbl">Amount:</div>
+          <input id="mAmount" class="ipt" type="number" step="0.01" inputmode="decimal" placeholder="0.00" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="lbl">Currency:</div>
+          <select id="mCurrency" class="sel2">
+            {% for c in currency_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <div class="lbl">Status:</div>
+          <select id="mStatus" class="sel2">
+            {% for s in status_choices %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="lbl">From:</div>
+          <input id="mFrom" class="ipt" placeholder="From" />
+        </div>
+        <div>
+          <div class="lbl">To:</div>
+          <input id="mTo" class="ipt" placeholder="To" />
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:center">
+        <button id="submitModal" class="submit">Upload</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sub modal Remarks -->
+<div id="remarksBack" class="modal-back">
+  <div class="modal" style="width:min(600px,96vw)">
+    <div class="modal-head">
+      <span>Invoice Remarks Category</span>
+      <span id="remarksClose" class="close-x">✕</span>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex; gap:8px; margin-bottom:10px">
+        <input id="newRemark" class="ipt" placeholder="Type new invoice remarks category" />
+        <button id="addRemark" class="btn blue">Add</button>
+      </div>
+      <div style="font-weight:700; margin:8px 0 6px">List of existing invoice remarks</div>
+      <ul id="remarksList" style="list-style:none; padding:0; margin:0; max-height:220px; overflow:auto; border:1px solid #e5e7eb; border-radius:10px"></ul>
+      <div style="display:flex; justify-content:flex-end; margin-top:10px">
+        <button id="remarksDone" class="btn">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status pop -->
+<div id="statusPop" class="status-pop"></div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+
+<script>
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+  const api = (url, opts = {}) => fetch(url, opts).then(r => r.ok ? r.json() : r.json().then(j => Promise.reject(j)));
+
+  // Export counter
+  let exportCounter = 1;
+
+  // Currency conversion rates
+  const CURRENCY_RATES = {
+    'IDR': 1.0,
+    'USD': 15800.0,
+    'SGD': 11700.0
+  };
+
+  function convertCurrency(amount, fromCurrency, toCurrency) {
+    if (fromCurrency === toCurrency) return amount;
+    const amountInIDR = amount * CURRENCY_RATES[fromCurrency];
+    return amountInIDR / CURRENCY_RATES[toCurrency];
+  }
+
+  // Tabs
+  $("#tabTable").onclick = () => {
+    $("#tabTable").classList.add("active");
+    $("#tabChart").classList.remove("active");
+    $("#tablePage").classList.remove("hidden");
+    $("#tablePage").style.display = "flex";
+    $("#chartPage").classList.add("hidden");
+    $("#filtersBar").style.display = "flex";
+  };
+
+  $("#tabChart").onclick = () => {
+    $("#tabChart").classList.add("active");
+    $("#tabTable").classList.remove("active");
+    $("#chartPage").classList.remove("hidden");
+    $("#tablePage").classList.add("hidden");
+    $("#filtersBar").style.display = "none";
+    renderCharts();
+  };
+
+  // Filters
+  const fillSelect = (el, items, labelAll = "All", mapFn = null) => {
+    el.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = "ALL";
+    opt.textContent = `${labelAll} (All)`;
+    el.appendChild(opt);
+    (items || []).forEach(v => {
+      const o = document.createElement("option");
+      if (mapFn) {
+        const { value, text } = mapFn(v);
+        o.value = value;
+        o.textContent = text;
+      } else {
+        o.value = v;
+        o.textContent = v;
+      }
+      el.appendChild(o);
+    });
+  };
+
+  async function loadFilters() {
+    const data = await api("{% url 'dashboard:api-filters' %}");
+    fillSelect($("#fProduct"), data.products, "Product");
+    fillSelect($("#fRemark"), data.remarks, "Invoice Remarks", (r) => ({ value: r.id, text: r.name }));
+    fillSelect($("#fCurrency"), data.currencies, "Currency");
+    fillSelect($("#fStatus"), data.statuses, "Status");
+    fillSelect($("#fFrom"), data.senders, "From");
+    fillSelect($("#fTo"), data.receivers, "To");
+  }
+
+  // Date range popover
+  const fDate = $("#fDate"),
+    rangePop = $("#rangePop");
+  fDate.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const r = fDate.getBoundingClientRect();
+    rangePop.style.left = r.left + "px";
+    rangePop.style.top = (r.bottom + 6) + "px";
+    rangePop.style.display = "block";
+  });
+
+  $("#rangeApply").onclick = () => {
+    const s = $("#rangeStart").value,
+      e = $("#rangeEnd").value;
+    if (s && e) {
+      fDate.value = `${s} to ${e}`
+    } else {
+      fDate.value = "";
+    }
+    rangePop.style.display = "none";
+  };
+
+  $("#rangeClear").onclick = () => {
+    $("#rangeStart").value = "";
+    $("#rangeEnd").value = "";
+    fDate.value = "";
+    rangePop.style.display = "none";
+  };
+
+  document.addEventListener("click", (ev) => {
+    if (!rangePop.contains(ev.target) && ev.target !== fDate) {
+      rangePop.style.display = "none";
+    }
+  });
+
+  // Table
+  let rowsData = [];
+  const body = $("#tableBody");
+
+  function renderTable() {
+    body.innerHTML = "";
+    if (!rowsData.length) {
+      const ez = document.createElement("div");
+      ez.id = "emptyZone";
+      ez.className = "empty-zone";
+      ez.textContent = "Upload Your File";
+      body.appendChild(ez);
+      ez.addEventListener("click", openCreateModal);
+      return;
+    }
+
+    rowsData.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `
+        <div>${r.product}</div>
+        <div>${r.date}</div>
+        <div>${r.remark}</div>
+        <div>${r.invoice_number}</div>
+        <div>${r.amount}</div>
+        <div>${r.currency}</div>
+        <div><span>${r.status}</span></div>
+        <div>${r.from_party}</div>
+        <div>${r.to_party}</div>
+        <div class="act">
+          <i class="ic" title="Edit" data-edit="${r.id}">✎</i>
+          <i class="ic" title="Delete" data-del="${r.id}">🗑</i>
+          <i class="ic" title="Change status" data-status="${r.id}">⚙️</i>
+        </div>
+        <div><a class="dl-btn" href="${r.download_url}">Download</a></div>
+      `;
+      body.appendChild(row);
+    });
+  }
+
+  async function queryTable() {
+    const p = new URLSearchParams();
+    const product = $("#fProduct").value;
+    if (product && product !== "ALL") p.append("product", product);
+    const remarkId = $("#fRemark").value;
+    if (remarkId && remarkId !== "ALL") p.append("remark_id", remarkId);
+    const currency = $("#fCurrency").value;
+    if (currency && currency !== "ALL") p.append("currency", currency);
+    const status = $("#fStatus").value;
+    if (status && status !== "ALL") p.append("status", status);
+    const from = $("#fFrom").value;
+    if (from && from !== "ALL") p.append("from", from);
+    const to = $("#fTo").value;
+    if (to && to !== "ALL") p.append("to", to);
+    const dr = $("#fDate").value;
+    if (dr) p.append("daterange", dr);
+    const data = await api("{% url 'dashboard:api-invoices' %}?" + p.toString());
+    rowsData = data.items || [];
+    renderTable();
+  }
+
+  $("#fSearch").onclick = queryTable;
+  $("#fClean").onclick = () => {
+    $$(".filters .sel").forEach(s => s.selectedIndex = 0);
+    $("#fDate").value = "";
+    queryTable();
+  };
+
+  // Export to Excel
+  $("#btnExport").onclick = async () => {
+    const p = new URLSearchParams();
+    const product = $("#fProduct").value;
+    if (product && product !== "ALL") p.append("product", product);
+    const remarkId = $("#fRemark").value;
+    if (remarkId && remarkId !== "ALL") p.append("remark_id", remarkId);
+    const currency = $("#fCurrency").value;
+    if (currency && currency !== "ALL") p.append("currency", currency);
+    const status = $("#fStatus").value;
+    if (status && status !== "ALL") p.append("status", status);
+    const from = $("#fFrom").value;
+    if (from && from !== "ALL") p.append("from", from);
+    const to = $("#fTo").value;
+    if (to && to !== "ALL") p.append("to", to);
+    const dr = $("#fDate").value;
+    if (dr) p.append("daterange", dr);
+
+    try {
+      const response = await fetch("{% url 'dashboard:api-export-excel' %}?" + p.toString());
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `InvoiceSummaryFile-V${exportCounter}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      exportCounter++;
+    } catch (e) {
+      alert('Failed to export: ' + e.message);
+    }
+  };
+
+  (async () => {
+    await loadFilters();
+    await queryTable();
+  })();
+
+  // Row actions
+  $("#openUpload").addEventListener("click", openCreateModal);
+
+  body.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t.dataset.edit) {
+      openEditModal(parseInt(t.dataset.edit));
+    }
+    if (t.dataset.del) {
+      delInvoice(parseInt(t.dataset.del));
+    }
+    if (t.dataset.status) {
+      openStatusPop(t, parseInt(t.dataset.status));
+    }
+  });
+
+  // Status pop
+  const statusPop = $("#statusPop");
+
+  function openStatusPop(anchor, id) {
+    const row = rowsData.find(x => x.id === id);
+    if (!row) return;
+
+    const all = ["Unpaid", "Progress", "Paid by MIMS Recoverable", "Paid by MIMS Expense", "Paid by Fund"].filter(s => s !== row.status);
+    statusPop.innerHTML = all.map(s => `<button data-set="${id}|${s}">${s}</button>`).join("");
+
+    const r = anchor.getBoundingClientRect();
+    statusPop.style.left = (r.left - 60) + "px";
+    statusPop.style.top = (r.bottom + 8) + "px";
+    statusPop.style.display = "block";
+  }
+
+  document.addEventListener("click", (e) => {
+    if (statusPop.style.display === "block" && !statusPop.contains(e.target) && !e.target.dataset.status) {
+      statusPop.style.display = "none";
+    }
+
+    if (e.target.dataset.set) {
+      const [id, stat] = e.target.dataset.set.split("|");
+      fetch(`/dashboard/api/invoice/${id}/status/`, {
+        method: "POST",
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: new URLSearchParams({ status: stat })
+      }).then(() => {
+        statusPop.style.display = "none";
+        queryTable();
+      });
+    }
+  });
+
+  // Modal Upload/Update
+  const backdrop = $("#backdrop");
+  const modalTitle = $("#modalTitle");
+  const submitBtn = $("#submitModal");
+  const fileInput = $("#fileInput");
+  const filePreview = $("#filePreview");
+  const fileName = $("#fileName");
+  const fileMeta = $("#fileMeta");
+  const fileBadge = $("#fileBadge");
+  const fileTrash = $("#fileTrash");
+  const dzCenter = $("#dzCenter");
+
+  $("#selectFile").onclick = () => fileInput.click();
+
+  $("#dropzone").addEventListener("dragover", e => {
+    e.preventDefault();
+  });
+
+  $("#dropzone").addEventListener("drop", e => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  fileTrash.addEventListener("click", () => {
+    fileInput.value = "";
+    filePreview.classList.add("hidden");
+    dzCenter.classList.remove("hidden");
+  });
+
+  function handleFile(f) {
+    fileName.textContent = f.name;
+    fileMeta.textContent = `${(f.size / 1024).toFixed(0)} KB • Completed`;
+
+    // Detect file type and set badge
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      fileBadge.textContent = 'PDF';
+      fileBadge.className = 'pdf-badge';
+    } else if (ext === 'doc' || ext === 'docx') {
+      fileBadge.textContent = 'WORD';
+      fileBadge.className = 'word-badge';
+    } else {
+      fileBadge.textContent = 'FILE';
+      fileBadge.className = 'pdf-badge';
+    }
+
+    filePreview.classList.remove("hidden");
+    dzCenter.classList.add("hidden");
+  }
+
+  function openCreateModal() {
+    modalTitle.textContent = "Please fill the credential of the file";
+    submitBtn.textContent = "Upload";
+    fileInput.value = "";
+    filePreview.classList.add("hidden");
+    dzCenter.classList.remove("hidden");
+    $("#mProduct").value = "";
+    $("#mDate").value = new Date().toISOString().slice(0, 10);
+    $("#mRemark").value = "-";
+    $("#mNumber").value = "";
+    $("#mAmount").value = "";
+    $("#mCurrency").value = "IDR";
+    $("#mStatus").value = "Unpaid";
+    $("#mFrom").value = "";
+    $("#mTo").value = "";
+    backdrop.style.display = "flex";
+    backdrop.dataset.mode = "create";
+    backdrop.dataset.id = "";
+  }
+
+  async function openEditModal(id) {
+    const r = rowsData.find(x => x.id === id);
+    if (!r) return;
+
+    modalTitle.textContent = "Please fill the credential of the file";
+    submitBtn.textContent = "Update";
+    fileName.textContent = `Invoice #${r.invoice_number}`;
+    fileMeta.textContent = `Completed`;
+    fileBadge.textContent = 'PDF';
+    fileBadge.className = 'pdf-badge';
+    filePreview.classList.remove("hidden");
+    dzCenter.classList.add("hidden");
+
+    $("#mProduct").value = r.product;
+    $("#mDate").value = r.date;
+    await loadRemarksForModal(r.remark);
+    $("#mNumber").value = r.invoice_number;
+    $("#mAmount").value = r.amount;
+    $("#mCurrency").value = r.currency;
+    $("#mStatus").value = r.status;
+    $("#mFrom").value = r.from_party;
+    $("#mTo").value = r.to_party;
+    backdrop.style.display = "flex";
+    backdrop.dataset.mode = "edit";
+    backdrop.dataset.id = id;
+  }
+
+  $("#modalClose").onclick = () => backdrop.style.display = "none";
+
+  async function loadRemarksForModal(selectedText = null) {
+    const j = await api("{% url 'dashboard:api-remarks-list' %}");
+    const sel = $("#mRemark");
+    sel.innerHTML = '<option value="-">-</option>';
+    j.items.forEach(it => {
+      const o = document.createElement("option");
+      o.value = it.id;
+      o.textContent = it.name;
+      sel.appendChild(o);
+    });
+    if (selectedText) {
+      [...sel.options].forEach(o => {
+        if (o.textContent === selectedText) sel.value = o.value;
+      });
+    }
+  }
+
+  loadRemarksForModal();
+
+  $("#mAmount").addEventListener("blur", e => {
+    if (e.target.value) {
+      e.target.value = e.target.value.replace(',', '.');
+    }
+  });
+
+  submitBtn.addEventListener("click", async () => {
+    const remark = $("#mRemark").value;
+    if (remark === "-" || !remark) {
+      alert("Please choose invoice remark.");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("product", $("#mProduct").value.trim());
+    fd.append("date", $("#mDate").value);
+    fd.append("remark_id", remark);
+    fd.append("invoice_number", $("#mNumber").value.trim());
+    fd.append("amount", $("#mAmount").value.trim().replace(",", "."));
+    fd.append("currency", $("#mCurrency").value);
+    fd.append("status", $("#mStatus").value);
+    fd.append("from_party", $("#mFrom").value.trim());
+    fd.append("to_party", $("#mTo").value.trim());
+
+    if (backdrop.dataset.mode === "create") {
+      if (!fileInput.files[0]) {
+        alert("File is required.");
+        return;
+      }
+      fd.append("file", fileInput.files[0]);
+      await fetch("{% url 'dashboard:api-invoice-create' %}", {
+        method: "POST",
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: fd
+      });
+    } else {
+      const id = backdrop.dataset.id;
+      if (fileInput.files[0]) fd.append("file", fileInput.files[0]);
+      await fetch(`/dashboard/api/invoice/${id}/update/`, {
+        method: "POST",
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: fd
+      });
+    }
+
+    backdrop.style.display = "none";
+    await loadFilters();
+    await queryTable();
+  });
+
+  async function delInvoice(id) {
+    if (!confirm("Delete this invoice and its file?")) return;
+    await fetch(`/dashboard/api/invoice/${id}/delete/`, {
+      method: "POST",
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    });
+    await loadFilters();
+    await queryTable();
+  }
+
+  // Remarks sub modal
+  const rb = $("#remarksBack");
+
+  $("#openRemarkModal").onclick = async () => {
+    rb.style.display = "flex";
+    await refreshRemarkList();
+  };
+
+  $("#remarksClose").onclick = () => rb.style.display = "none";
+
+  $("#remarksDone").onclick = async () => {
+    rb.style.display = "none";
+    await loadRemarksForModal();
+  };
+
+  async function refreshRemarkList() {
+    const j = await api("{% url 'dashboard:api-remarks-list' %}");
+    const ul = $("#remarksList");
+    ul.innerHTML = "";
+
+    j.items.forEach(it => {
+      const li = document.createElement("li");
+      li.style.display = "flex";
+      li.style.alignItems = "center";
+      li.style.gap = "8px";
+      li.style.padding = "8px 10px";
+      li.dataset.id = it.id;
+      li.innerHTML = `<span style="flex:1">${it.name}</span>
+        <button class="btn" data-up="${it.id}" style="padding:4px 8px">↑</button>
+        <button class="btn" data-down="${it.id}" style="padding:4px 8px">↓</button>
+        <button class="btn" data-delete="${it.id}" style="padding:4px 8px; background:#fee; color:#c00">🗑</button>`;
+      ul.appendChild(li);
+    });
+  }
+
+  $("#addRemark").onclick = async () => {
+    const name = $("#newRemark").value.trim();
+    if (!name) return;
+
+    try {
+      await fetch("{% url 'dashboard:api-remarks-add' %}", {
+        method: "POST",
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: new URLSearchParams({ name })
+      });
+      $("#newRemark").value = "";
+      await refreshRemarkList();
+      await loadRemarksForModal();
+    } catch (e) {
+      alert(e.msg || "Remark exists or invalid");
+    }
+  };
+
+  $("#remarksList").addEventListener("click", async (e) => {
+    const up = e.target.dataset.up;
+    const down = e.target.dataset.down;
+    const deleteId = e.target.dataset.delete;
+
+    // Handle delete
+    if (deleteId) {
+      if (!confirm("Delete this remark? This will only work if no invoices are using it.")) return;
+      try {
+        const res = await fetch(`/dashboard/api/remarks/${deleteId}/delete/`, {
+          method: "POST",
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          alert(data.msg || "Cannot delete remark");
+          return;
+        }
+        await refreshRemarkList();
+        await loadRemarksForModal();
+      } catch (e) {
+        alert("Error deleting remark");
+      }
+      return;
+    }
+
+    // Handle reorder
+    if (!up && !down) return;
+
+    const items = [...$("#remarksList").children].map(li => li.dataset.id);
+    const idx = items.indexOf(up || down);
+
+    if (up && idx > 0) {
+      [items[idx - 1], items[idx]] = [items[idx], items[idx - 1]];
+    }
+    if (down && idx < items.length - 1) {
+      [items[idx], items[idx + 1]] = [items[idx + 1], items[idx]];
+    }
+
+    const body = new URLSearchParams();
+    items.forEach(id => body.append("order[]", id));
+
+    await fetch("{% url 'dashboard:api-remarks-reorder' %}", {
+      method: "POST",
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body
+    });
+
+    await refreshRemarkList();
+    await loadRemarksForModal();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target.id === "emptyZone") openCreateModal();
+  });
+
+  /* ---------------- Charts ---------------- */
+  let chartInstances = {};
+
+  function destroyCharts() {
+    Object.values(chartInstances).forEach(ch => {
+      try {
+        ch.destroy();
+      } catch (_) { }
+    });
+    chartInstances = {};
+  }
+
+  function renderCharts() {
+    destroyCharts();
+
+    // Get currency for each chart
+    const currencySelects = $$(".chart-currency");
+    const currencies = {
+      remark: currencySelects[0]?.value || 'IDR',
+      receiver: currencySelects[1]?.value || 'IDR',
+      month: currencySelects[2]?.value || 'IDR'
+    };
+
+    const byRemark = {};
+    const byStatus = {};
+    const byReceiver = {};
+    const byMonth = {};
+
+    rowsData.forEach(r => {
+      const amt = Number((r.amount || '0').toString().replace(/,/g, '')) || 0;
+      const curr = r.currency;
+      const rk = r.remark || '-';
+      const st = r.status || '-';
+      const to = r.to_party || '-';
+      const m = (r.date || '').slice(0, 7) || '-';
+
+      // Convert to target currencies
+      const amtRemark = convertCurrency(amt, curr, currencies.remark);
+      const amtReceiver = convertCurrency(amt, curr, currencies.receiver);
+      const amtMonth = convertCurrency(amt, curr, currencies.month);
+
+      byRemark[rk] = (byRemark[rk] || 0) + amtRemark;
+      byStatus[st] = (byStatus[st] || 0) + 1;
+      byReceiver[to] = (byReceiver[to] || 0) + amtReceiver;
+      byMonth[m] = (byMonth[m] || 0) + amtMonth;
+    });
+
+    const ctx1 = $("#barRemark");
+    const ctx2 = $("#pieStatus");
+    const ctx3 = $("#barReceiver");
+    const ctx4 = $("#lineMonth");
+
+    chartInstances.barRemark = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(byRemark),
+        datasets: [{ label: `Amount (${currencies.remark})`, data: Object.values(byRemark) }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    chartInstances.pieStatus = new Chart(ctx2, {
+      type: 'pie',
+      data: {
+        labels: Object.keys(byStatus),
+        datasets: [{ data: Object.values(byStatus) }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } }
+      }
+    });
+
+    const recvEntries = Object.entries(byReceiver).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    chartInstances.barReceiver = new Chart(ctx3, {
+      type: 'bar',
+      data: {
+        labels: recvEntries.map(e => e[0]),
+        datasets: [{ label: `Amount (${currencies.receiver})`, data: recvEntries.map(e => e[1]) }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        scales: { x: { beginAtZero: true } }
+      }
+    });
+
+    const mEntries = Object.entries(byMonth).filter(([k]) => k !== '-').sort((a, b) => a[0].localeCompare(b[0]));
+    chartInstances.lineMonth = new Chart(ctx4, {
+      type: 'line',
+      data: {
+        labels: mEntries.map(e => e[0]),
+        datasets: [{
+          label: `Amount (${currencies.month})`,
+          data: mEntries.map(e => e[1]),
+          tension: .25,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  // Currency change listeners for charts
+  document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('chart-currency')) {
+      renderCharts();
+    }
+  });
+</script>
+{% endblock %}

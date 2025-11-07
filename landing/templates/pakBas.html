@@ -1,0 +1,626 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Chief Executive Officer – Baskoro Adi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {box-sizing: border-box; margin: 0; padding: 0;}
+    
+    body {
+      font-family: "Segoe UI", Roboto, Arial, Helvetica, sans-serif;
+      background: #f8fafc;
+      color: #1a1a1a;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    .animated-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      opacity: 0.05;
+    }
+    
+    .geometric-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background-image: 
+        linear-gradient(30deg, #0d3aa9 12%, transparent 12.5%, transparent 87%, #0d3aa9 87.5%, #0d3aa9),
+        linear-gradient(150deg, #0d3aa9 12%, transparent 12.5%, transparent 87%, #0d3aa9 87.5%, #0d3aa9),
+        linear-gradient(30deg, #0d3aa9 12%, transparent 12.5%, transparent 87%, #0d3aa9 87.5%, #0d3aa9),
+        linear-gradient(150deg, #0d3aa9 12%, transparent 12.5%, transparent 87%, #0d3aa9 87.5%, #0d3aa9);
+      background-size: 80px 140px;
+      background-position: 0 0, 0 0, 40px 70px, 40px 70px;
+      opacity: 0.03;
+      animation: geometricMove 60s linear infinite;
+    }
+    
+    @keyframes geometricMove {
+      0% { background-position: 0 0, 0 0, 40px 70px, 40px 70px; }
+      100% { background-position: 80px 140px, 0 0, 120px 210px, 40px 70px; }
+    }
+    
+    .dot-pattern {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background-image: radial-gradient(circle, #0d3aa9 1px, transparent 1px);
+      background-size: 30px 30px;
+      opacity: 0.05;
+    }
+    
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      z-index: -1;
+      animation: floatOrb 20s ease-in-out infinite;
+    }
+    
+    .orb-1 {
+      width: 400px;
+      height: 400px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      top: -200px;
+      left: -200px;
+      animation-delay: 0s;
+    }
+    
+    .orb-2 {
+      width: 350px;
+      height: 350px;
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      bottom: -150px;
+      right: -150px;
+      animation-delay: 5s;
+    }
+    
+    .orb-3 {
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      top: 40%;
+      right: 10%;
+      animation-delay: 10s;
+    }
+    
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(50px, -50px) scale(1.1); }
+      66% { transform: translate(-30px, 30px) scale(0.9); }
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .page-title {
+      text-align: center;
+      color: #0d3aa9;
+      font-size: 44px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .typing-text {
+      display: inline-block;
+      border-right: 3px solid #0d3aa9;
+      padding-right: 5px;
+      animation: blink 0.7s step-end infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { border-color: #0d3aa9; }
+      50% { border-color: transparent; }
+    }
+    
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 0.8s ease forwards;
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      margin-bottom: 48px;
+    }
+    
+    .info-section {
+      text-align: center;
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+      animation: fadeInScale 0.6s ease forwards;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      padding: 20px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+    }
+    
+    .info-section:nth-child(1) { animation-delay: 0.4s; }
+    .info-section:nth-child(2) { animation-delay: 0.6s; }
+    .info-section:nth-child(3) { animation-delay: 0.8s; }
+    
+    @keyframes fadeInScale {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    .info-section:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(13, 58, 169, 0.15);
+    }
+    
+    .icon-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .icon-main {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    
+    .icon-dot {
+      width: 20px;
+      height: 20px;
+      background: #fbbf24;
+      border-radius: 50%;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0d3aa9;
+      margin-bottom: 16px;
+    }
+    
+    .social-icons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    
+    .social-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0d3aa9;
+      font-size: 28px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .social-icon::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(13, 58, 169, 0.1);
+      border-radius: 50%;
+      transform: scale(0);
+      transition: transform 0.3s ease;
+    }
+    
+    .social-icon:hover::before {
+      transform: scale(1.2);
+    }
+    
+    .social-icon:hover {
+      transform: translateY(-5px) rotate(360deg);
+      color: #042189;
+    }
+    
+    .detail-list {
+      list-style: none;
+      padding: 0;
+      text-align: center;
+      color: #1a1a1a;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    
+    .detail-list li {
+      position: relative;
+      padding-left: 0;
+      opacity: 0;
+      animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .info-section:nth-child(2) .detail-list li:nth-child(1) { animation-delay: 1s; }
+    .info-section:nth-child(2) .detail-list li:nth-child(2) { animation-delay: 1.2s; }
+    .info-section:nth-child(3) .detail-list li:nth-child(1) { animation-delay: 1.4s; }
+    .info-section:nth-child(3) .detail-list li:nth-child(2) { animation-delay: 1.6s; }
+    
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    
+    .detail-list li::before {
+      content: "•";
+      margin-right: 6px;
+      color: #0d3aa9;
+    }
+    
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 60px;
+      align-items: start;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      animation: fadeInUp 0.8s ease forwards;
+      animation-delay: 1.8s;
+    }
+    
+    .photo-wrapper {
+      text-align: center;
+      perspective: 1000px;
+    }
+    
+    .ceo-photo {
+      width: 100%;
+      max-width: 380px;
+      height: auto;
+      border-radius: 8px;
+      transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+    
+    .ceo-photo:hover {
+      transform: scale(1.05) translateY(-15px) rotateY(5deg);
+      box-shadow: 0 25px 50px rgba(13, 58, 169, 0.4);
+    }
+    
+    .ceo-photo.clicked {
+      animation: photoPopup 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    @keyframes photoPopup {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15) translateY(-20px) rotateY(10deg); }
+      100% { transform: scale(1.05) translateY(-15px) rotateY(5deg); }
+    }
+    
+    .content-wrapper {
+      padding-top: 20px;
+    }
+    
+    .ceo-name {
+      font-size: 48px;
+      font-weight: 700;
+      color: #042189;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    
+    .ceo-name span {
+      display: inline-block;
+      opacity: 0;
+      animation: letterDrop 0.5s ease forwards;
+    }
+    
+    @keyframes letterDrop {
+      0% {
+        opacity: 0;
+        transform: translateY(-50px) rotate(-10deg);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+      }
+    }
+    
+    .ceo-bio {
+      color: #4b5563;
+      font-size: 15px;
+      line-height: 1.8;
+      margin-bottom: 28px;
+      opacity: 0;
+    }
+    
+    .ceo-bio.typing {
+      animation: fadeIn 0.5s ease forwards;
+      animation-delay: 2.5s;
+    }
+    
+    .back-btn {
+      display: inline-block;
+      background: #0d3aa9;
+      color: #ffffff;
+      padding: 12px 36px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      animation: fadeIn 0.5s ease forwards;
+      animation-delay: 3s;
+    }
+    
+    .back-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .back-btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    .back-btn:hover {
+      background: #0a2d87;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(13, 58, 169, 0.4);
+    }
+    
+    .back-btn span {
+      position: relative;
+      z-index: 1;
+    }
+    
+
+    @media (max-width: 900px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .main-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      .page-title {
+        font-size: 36px;
+      }
+      .ceo-name {
+        font-size: 38px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="animated-bg"></div>
+  <div class="geometric-bg"></div>
+  <div class="dot-pattern"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  
+  <div class="container">
+
+    <h1 class="page-title">
+      <span class="typing-text" id="typingTitle"></span>
+    </h1>
+    
+
+    <div class="info-grid">
+
+      <div class="info-section">
+        <div class="icon-wrapper">
+          <div class="icon-main">🏛️</div>
+          <div class="icon-dot"></div>
+        </div>
+        <h3 class="section-title">Social Media</h3>
+        <div class="social-icons">
+          <a href="https://www.linkedin.com/in/baskoro-adi-45469a94/" class="social-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+            </svg>
+          </a>
+          <a href="#" class="social-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.04c-5.5 0-10 4.49-10 10.02 0 5 3.66 9.15 8.44 9.9v-7H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.89 3.78-3.89 1.09 0 2.23.19 2.23.19v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.45 2.9h-2.33v7a10 10 0 0 0 8.44-9.9c0-5.53-4.5-10.02-10-10.02z"/>
+            </svg>
+          </a>
+          <a href="#" class="social-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      
+      <div class="info-section">
+        <div class="icon-wrapper">
+          <div class="icon-main">💼</div>
+          <div class="icon-dot"></div>
+        </div>
+        <h3 class="section-title">Work Experience</h3>
+        <ul class="detail-list">
+          <li>Mandiri Investment Management</li>
+          <li>CIMB Niaga</li>
+        </ul>
+      </div>
+      
+
+      <div class="info-section">
+        <div class="icon-wrapper">
+          <div class="icon-main">🎓</div>
+          <div class="icon-dot"></div>
+        </div>
+        <h3 class="section-title">Education</h3>
+        <ul class="detail-list">
+          <li>INSEAD</li>
+          <li>Institute Technology Bandung</li>
+        </ul>
+      </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-grid">
+      <div class="photo-wrapper">
+        <img class="ceo-photo" src="{% static 'PakBasPNG.png' %}" alt="Baskoro Adi" id="ceoPhoto">
+      </div>
+      
+      <div class="content-wrapper">
+        <h2 class="ceo-name" id="ceoName"></h2>
+        <p class="ceo-bio typing" id="ceoBio"></p>
+        <a href="{% url 'landing' %}" class="back-btn"><span>Back</span></a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Typing and Deleting Animation for Title
+    function typeDeleteTitle() {
+      const titleElement = document.getElementById('typingTitle');
+      const fullText = 'Chief Executive Officer';
+      let charIndex = 0;
+      let isDeleting = false;
+      let typeSpeed = 100;
+      let deleteSpeed = 50;
+      let pauseTime = 2000;
+      
+      function type() {
+        if (!isDeleting && charIndex < fullText.length) {
+          // Typing
+          titleElement.textContent = fullText.substring(0, charIndex + 1);
+          charIndex++;
+          setTimeout(type, typeSpeed);
+        } else if (!isDeleting && charIndex === fullText.length) {
+          // Pause before deleting
+          isDeleting = true;
+          setTimeout(type, pauseTime);
+        } else if (isDeleting && charIndex > 0) {
+          // Deleting
+          titleElement.textContent = fullText.substring(0, charIndex - 1);
+          charIndex--;
+          setTimeout(type, deleteSpeed);
+        } else if (isDeleting && charIndex === 0) {
+          // Pause before typing again
+          isDeleting = false;
+          setTimeout(type, 500);
+        }
+      }
+      
+      type();
+    }
+    
+    // Typing effect for CEO name
+    function typeText(element, text, delay = 100) {
+      const characters = text.split('');
+      element.innerHTML = '';
+      
+      characters.forEach((char, index) => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        span.style.animationDelay = (2.2 + index * 0.05) + 's';
+        element.appendChild(span);
+      });
+    }
+    
+    // Typing effect for bio
+    function typeBio(element, text, speed = 20) {
+      let index = 0;
+      element.textContent = '';
+      
+      function type() {
+        if (index < text.length) {
+          element.textContent += text.charAt(index);
+          index++;
+          setTimeout(type, speed);
+        }
+      }
+      
+      setTimeout(() => {
+        type();
+      }, 2500);
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Start title typing animation
+      typeDeleteTitle();
+      
+      const ceoName = document.getElementById('ceoName');
+      const ceoBio = document.getElementById('ceoBio');
+      const ceoPhoto = document.getElementById('ceoPhoto');
+      
+      // Name typing effect
+      typeText(ceoName, 'Baskoro\nAdi');
+      
+      // Bio typing effect
+      const bioText = `Baskoro Adi is the Chief Executive Officer and Executive Director of the Manager. With 15 years of experience at private and state banks, both in Indonesia and Singapore, he is equipped with the acumen to problem-solve and think out of the box.
+
+Baskoro fully comprehends the complexities of investment issues today, particularly sustainability investing issues. With a degree in urban planning from Institut Teknologi Bandung, Baskoro segued into providing exceptional financial counselling for clients and devising astute fund structuring. He graduated from INSEAD under the Global Executive MBA program.`;
+      
+      typeBio(ceoBio, bioText, 15);
+      
+
+      ceoPhoto.addEventListener('click', function() {
+        this.classList.remove('clicked');
+        void this.offsetWidth;
+        this.classList.add('clicked');
+        
+        setTimeout(() => {
+          this.classList.remove('clicked');
+        }, 600);
+      });
+    });
+  </script>
+</body>
+</html>

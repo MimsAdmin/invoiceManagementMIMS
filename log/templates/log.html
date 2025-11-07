@@ -1,0 +1,244 @@
+<!-- log/templates/log.html -->
+{% extends 'sidebar.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  #logBody .row{
+    grid-template-columns: 1fr 1fr 2fr 1fr !important;
+  }
+  #logBody .row > div:nth-child(3){
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding-left: 10px !important;
+  }
+</style>
+<div class="content">
+  <div class="page-head">
+    <div class="title">Activity Log</div>
+
+    <!-- Filters -->
+    <div class="filters" style="margin-top:20px;">
+      <input id="fUser" class="sel" placeholder="Search User" style="min-width:180px">
+
+      <div style="position:relative">
+        <input id="fDate" class="sel" readonly placeholder="Date (All)" style="width:170px; cursor:pointer">
+        <div id="rangePop" class="range-pop" style="width:280px; display:none;">
+          <div class="lbl">Start</div>
+          <input id="rangeStart" type="date" class="ipt" />
+          <div class="lbl">End</div>
+          <input id="rangeEnd" type="date" class="ipt" />
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <button class="btn" id="rangeClear" style="flex:1">Clear</button>
+            <button class="btn blue" id="rangeApply" style="flex:1">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <select id="fAction" class="sel" style="min-width:180px">
+        <option value="">Action (All)</option>
+        {% for choice in action_choices %}
+        <option value="{{ choice.value }}">{{ choice.label }}</option>
+        {% endfor %}
+      </select>
+
+      <input id="fSearch" class="sel" placeholder="Search Details" style="min-width:200px">
+
+      <!-- ACTIONS pinned right -->
+      <div class="filters-actions" style="margin-left:auto; display:flex; gap:8px;">
+        <button id="btnClear" class="btn">Clear</button>
+        <button id="btnFilter" class="btn blue">Search</button>
+        <button id="btnDownload" class="btn green">Download Excel</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- Log Table -->
+  <<div style="flex:1; display:flex; flex-direction:column; padding:20px;">
+  <div class="table-wrap"
+       style="margin:0 auto !important;
+              width:calc(100% - 40px) !important;
+              max-width:100% !important;
+              background:#fff; border-radius:12px; border:1px solid #e5e7eb;
+              overflow:hidden; display:flex; flex-direction:column;
+              height:520px;">
+    <div class="table-container"
+         style="display:flex; flex-direction:column; height:100%; flex:1;
+                overflow-x:hidden !important; overflow-y:hidden;">
+      <div class="table-inner"
+           style="display:flex; flex-direction:column; height:100%; flex:1;
+                  /* OVERRIDE CSS GLOBAL */
+                  min-width:0 !important;
+                  width:100% !important;">
+        <!-- Header -->
+        <div class="thead"
+            style="background:#102B86; color:#fff; display:grid;
+                    grid-template-columns:1fr 1fr 2fr 1fr !important;
+                    gap:8px; padding:14px 16px; font-weight:700; font-size:14px;
+                    min-height:56px;">
+
+          <div style="text-align:center;">User</div>
+          <div style="text-align:center;">Action</div>
+          <div style="text-align:center;">Details</div>
+          <div style="text-align:center;">Date</div>
+        </div>
+
+        <!-- Body -->
+        <div class="tbody-wrap"
+             style="flex:1; overflow-y:auto; overflow-x:hidden;
+                    padding:0 16px 12px; height:0;">
+          <div id="logBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- Pagination -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:0 20px;">
+      <div id="logInfo" style="color:#6b7280;">Loading...</div>
+      <div style="display:flex; gap:8px;">
+        <button id="btnPrev" class="btn" disabled>Previous</button>
+        <button id="btnNext" class="btn" disabled>Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const $ = (s) => document.querySelector(s);
+  const api = (url) => fetch(url).then(r => r.json());
+
+  let currentOffset = 0;
+  let currentTotal = 0;
+  const limit = 100;
+
+  // Date range popover
+  const fDate = $("#fDate"), rangePop = $("#rangePop");
+  fDate.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const r = fDate.getBoundingClientRect();
+    rangePop.style.left = r.left + "px";
+    rangePop.style.top = (r.bottom + 6) + "px";
+    rangePop.style.display = "block";
+  });
+
+  $("#rangeApply").onclick = () => {
+    const s = $("#rangeStart").value, e = $("#rangeEnd").value;
+    if (s && e) { fDate.value = `${s} to ${e}`; }
+    rangePop.style.display = "none";
+  };
+
+  $("#rangeClear").onclick = () => {
+    $("#rangeStart").value = "";
+    $("#rangeEnd").value = "";
+    fDate.value = "";
+    rangePop.style.display = "none";
+  };
+
+  document.addEventListener("click", (ev) => {
+    if (!rangePop.contains(ev.target) && ev.target !== fDate) {
+      rangePop.style.display = "none";
+    }
+  });
+
+  async function loadLogs() {
+    const p = new URLSearchParams();
+    const user = $("#fUser").value.trim();
+    if (user) p.append("user", user);
+    const action = $("#fAction").value;
+    if (action) p.append("action", action);
+    const dr = $("#fDate").value;
+    if (dr) p.append("daterange", dr);
+    const q = $("#fSearch").value.trim();
+    if (q) p.append("q", q);
+    p.append("limit", limit);
+    p.append("offset", currentOffset);
+
+    const data = await api("{% url 'log:api-entries' %}?" + p.toString());
+    currentTotal = data.total;
+    renderLogs(data.items);
+    updatePagination();
+  }
+
+  function renderLogs(items) {
+    const body = $("#logBody");
+    body.innerHTML = "";
+
+    if (!items.length) {
+      body.innerHTML = '<div style="text-align:center; padding:40px; color:#9ca3af;">No log entries found</div>';
+      return;
+    }
+
+    items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.style.gridTemplateColumns = "1fr 1fr 2fr 1fr";
+      row.innerHTML = `
+        <div>${item.user}</div>
+        <div>${item.action}</div>
+        <div style="text-align:left; padding-left:10px;">${item.details}</div>
+        <div>${item.date}</div>
+      `;
+      body.appendChild(row);
+    });
+  }
+
+  function updatePagination() {
+    const start = currentOffset + 1;
+    const end = Math.min(currentOffset + limit, currentTotal);
+    $("#logInfo").textContent = `Showing ${start}-${end} of ${currentTotal} entries`;
+    
+    $("#btnPrev").disabled = currentOffset === 0;
+    $("#btnNext").disabled = currentOffset + limit >= currentTotal;
+  }
+
+  $("#btnFilter").onclick = () => {
+    currentOffset = 0;
+    loadLogs();
+  };
+
+  $("#btnClear").onclick = () => {
+    $("#fUser").value = "";
+    $("#fAction").value = "";
+    $("#fDate").value = "";
+    $("#fSearch").value = "";
+    currentOffset = 0;
+    loadLogs();
+  };
+
+  $("#btnPrev").onclick = () => {
+    if (currentOffset > 0) {
+      currentOffset = Math.max(0, currentOffset - limit);
+      loadLogs();
+    }
+  };
+
+  $("#btnNext").onclick = () => {
+    if (currentOffset + limit < currentTotal) {
+      currentOffset += limit;
+      loadLogs();
+    }
+  };
+
+  $("#btnDownload").onclick = () => {
+    const p = new URLSearchParams();
+    const user = $("#fUser").value.trim();
+    if (user) p.append("user", user);
+    const action = $("#fAction").value;
+    if (action) p.append("action", action);
+    const dr = $("#fDate").value;
+    if (dr) p.append("daterange", dr);
+    const q = $("#fSearch").value.trim();
+    if (q) p.append("q", q);
+
+    window.location.href = "{% url 'log:api-download' %}?" + p.toString();
+  };
+
+  // Load on page load
+  loadLogs();
+</script>
+{% endblock %}
