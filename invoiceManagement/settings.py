@@ -39,6 +39,10 @@ ALLOWED_HOSTS = [
 ]
 
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://invoicemanagementmims-production.up.railway.app',
+]
+
 # Application definition
 
 INSTALLED_APPS = [
