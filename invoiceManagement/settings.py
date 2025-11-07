@@ -20,7 +20,7 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
+load_dotenv(os.path.join(BASE_DIR, '.env'), override=False)
 
 
 # Quick-start development settings - unsuitable for production
