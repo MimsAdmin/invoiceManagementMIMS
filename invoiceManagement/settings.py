@@ -32,7 +32,11 @@ SECRET_KEY = 'django-insecure-&$8euhco!rw)_+kiaua@weaex$_q1sk&4r_hqqwh7_n7w7qs9$
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'invoicemanagementmims-production.up.railway.app',
+    'localhost',
+    '127.0.0.1',
+]
 
 
 # Application definition
