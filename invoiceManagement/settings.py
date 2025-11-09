@@ -161,8 +161,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static",]
+if os.environ.get('VERCEL'):
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# HANYA untuk production / jika kamu ingin pakai `collectstatic`
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
