@@ -1,6 +1,7 @@
 {
   "version": 2,
   "builds": [
+    { "src": "api/*.py", "use": "@vercel/python" },
     { "src": "invoiceManagement/wsgi.py", "use": "@vercel/python" }
   ],
   "routes": [
