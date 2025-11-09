@@ -1,0 +1,23 @@
+name: Create Django Superuser (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-superuser:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SETTINGS_MODULE: invoiceManagement.settings
+      PYTHONPATH: .
+      DJANGO_SUPERUSER_USERNAME: admin
+      DJANGO_SUPERUSER_EMAIL: admin@example.com
+      DJANGO_SUPERUSER_PASSWORD: ChangeMe123!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install -r requirements.txt
+          python manage.py createsuperuser --noinput
