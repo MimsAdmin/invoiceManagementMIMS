@@ -105,7 +105,7 @@ WSGI_APPLICATION = 'invoiceManagement.wsgi.application'
 #     }
 # }
 
-DATABASE_URL = os.environ.get('POSTGRES_URL') or os.environ.get('DATABASE_URL')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if DATABASE_URL:
     DATABASES = {
@@ -160,13 +160,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / "static",]
-if os.environ.get('VERCEL'):
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-else:
-    STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
 # Default primary key field type
