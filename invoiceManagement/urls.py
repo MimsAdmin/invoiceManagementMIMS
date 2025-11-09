@@ -32,3 +32,9 @@ if settings.DEBUG:
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.DEBUG:
+    static_dirs = getattr(settings, "STATICFILES_DIRS", [])
+    document_root = static_dirs[0] if static_dirs else settings.STATIC_ROOT
+    urlpatterns += static(settings.STATIC_URL, document_root=document_root)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
