@@ -105,18 +105,45 @@ WSGI_APPLICATION = 'invoiceManagement.wsgi.application'
 
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Gunakan individual PostgreSQL variables
+PGHOST = os.environ.get('PGHOST')
+PGPORT = os.environ.get('PGPORT', '5432')
+PGDATABASE = os.environ.get('PGDATABASE')
+PGUSER = os.environ.get('PGUSER')
+PGPASSWORD = os.environ.get('PGPASSWORD')
+
+# Debug
+print("=" * 80)
+print(f"PGHOST: {PGHOST}")
+print(f"PGDATABASE: {PGDATABASE}")
+print(f"PGUSER: {PGUSER}")
+print("=" * 80)
+
+if PGHOST and PGDATABASE and PGUSER and PGPASSWORD:
+    # Production: PostgreSQL
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': PGDATABASE,
+            'USER': PGUSER,
+            'PASSWORD': PGPASSWORD,
+            'HOST': PGHOST,
+            'PORT': PGPORT,
+        }
     }
-}
+    print("✅ Using PostgreSQL")
+else:
+    # Development: SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+    print("⚠️  Using SQLite")
 
-if PRODUCTION:
-    DATABASES['default'] = dj_database_url.config(
-        conn_max_age=600, ssl_require=True
-    )
-
+print(f"Database ENGINE: {DATABASES['default']['ENGINE']}")
+print("=" * 80)
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
