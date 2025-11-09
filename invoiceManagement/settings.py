@@ -12,25 +12,26 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
-import environ
-from dotenv import load_dotenv
-import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-PRODUCTION = os.getenv('DATABASE_URL') is not None
-
+# Load .env ONLY in development (when not on Railway)
+if not os.environ.get('RAILWAY_ENVIRONMENT'):
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(BASE_DIR, '.env'))
+    except ImportError:
+        pass
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&$8euhco!rw)_+kiaua@weaex$_q1sk&4r_hqqwh7_n7w7qs9$'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-&$8euhco!rw)_+kiaua@weaex$_q1sk&4r_hqqwh7_n7w7qs9$')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = [
     'invoicemanagementmims-production.up.railway.app',
@@ -38,13 +39,20 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
+# Add Railway domain dynamically
+RAILWAY_PUBLIC_DOMAIN = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+if RAILWAY_PUBLIC_DOMAIN:
+    ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
 
 CSRF_TRUSTED_ORIGINS = [
     'https://invoicemanagementmims-production.up.railway.app',
 ]
 
-# Application definition
+# Add Railway domain to CSRF trusted origins
+if RAILWAY_PUBLIC_DOMAIN:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RAILWAY_PUBLIC_DOMAIN}')
 
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -56,7 +64,6 @@ INSTALLED_APPS = [
     'authen',
     'dashboard',
     'log',
-
 ]
 
 MIDDLEWARE = [
@@ -78,6 +85,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -89,38 +97,31 @@ TEMPLATES = [
 WSGI_APPLICATION = 'invoiceManagement.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# ================================
+# DATABASE CONFIGURATION
+# ================================
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': os.getenv('DB_NAME'),
-#         'USER': os.getenv('DB_USER'),
-#         'PASSWORD': os.getenv('DB_PASSWORD'),
-#         'HOST': os.getenv('DB_HOST'),
-#         'PORT': os.getenv('DB_PORT'),
-#     }
-# }
-
-
-
-# Gunakan individual PostgreSQL variables
+# Get PostgreSQL variables from Railway
 PGHOST = os.environ.get('PGHOST')
 PGPORT = os.environ.get('PGPORT', '5432')
 PGDATABASE = os.environ.get('PGDATABASE')
 PGUSER = os.environ.get('PGUSER')
 PGPASSWORD = os.environ.get('PGPASSWORD')
 
-# Debug
+# Debug logging
 print("=" * 80)
+print("DATABASE CONFIGURATION DEBUG:")
 print(f"PGHOST: {PGHOST}")
+print(f"PGPORT: {PGPORT}")
 print(f"PGDATABASE: {PGDATABASE}")
 print(f"PGUSER: {PGUSER}")
+print(f"PGPASSWORD exists: {bool(PGPASSWORD)}")
+print(f"RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT')}")
 print("=" * 80)
 
+# Configure database based on environment
 if PGHOST and PGDATABASE and PGUSER and PGPASSWORD:
-    # Production: PostgreSQL
+    # Production: Use PostgreSQL
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -129,21 +130,28 @@ if PGHOST and PGDATABASE and PGUSER and PGPASSWORD:
             'PASSWORD': PGPASSWORD,
             'HOST': PGHOST,
             'PORT': PGPORT,
+            'CONN_MAX_AGE': 600,
+            'OPTIONS': {
+                'connect_timeout': 10,
+            }
         }
     }
-    print("✅ Using PostgreSQL")
+    print("✅ Using PostgreSQL from Railway")
 else:
-    # Development: SQLite
+    # Development: Use SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-    print("⚠️  Using SQLite")
+    print("⚠️  Using SQLite (Development)")
 
 print(f"Database ENGINE: {DATABASES['default']['ENGINE']}")
+print(f"Database NAME: {DATABASES['default'].get('NAME')}")
+print(f"Database HOST: {DATABASES['default'].get('HOST', 'N/A')}")
 print("=" * 80)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -180,9 +188,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / "static",]
-
-# HANYA untuk production / jika kamu ingin pakai `collectstatic`
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
@@ -191,5 +197,6 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
