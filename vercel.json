@@ -1,12 +1,22 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/*.py", "use": "@vercel/python" },
-    { "src": "invoiceManagement/wsgi.py", "use": "@vercel/python" }
+    { 
+      "src": "invoiceManagement/wsgi.py", 
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
+    }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.py" },
-    { "src": "/(.*)", "dest": "invoiceManagement/wsgi.py" }
+    {
+      "src": "/(.*)",
+      "dest": "invoiceManagement/wsgi.py"
+    }
   ],
-  "buildCommand": "python manage.py collectstatic --noinput"
+  "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput --clear && python manage.py migrate --noinput",
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "invoiceManagement.settings"
+  }
 }
