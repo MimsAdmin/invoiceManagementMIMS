@@ -15,15 +15,15 @@ def sign_in(request):
             user = authenticate(request, username=user.username, password=password)
 
         if user is None:
-            messages.error(request, "Email atau password tidak sesuai.")
+            messages.error(request, "Email or password is incorrect.")
             return render(request, "signIn.html", {})
 
         profile = getattr(user, "profile", None)
         if not user.is_active or (profile and profile.approval_status != "APPROVED"):
             if profile and profile.approval_status == "REJECTED":
-                messages.error(request, "Pendaftaran Anda ditolak admin. Hubungi administrator.")
+                messages.error(request, "Your registration has been rejected by the admin. Please contact the administrator.")
             else:
-                messages.warning(request, "Akun Anda belum disetujui admin.")
+                messages.warning(request, "Your account has not yet been approved by the admin")
             return render(request, "signIn.html", {})
 
         login(request, user)
@@ -38,15 +38,15 @@ def sign_up(request):
         password2 = request.POST.get("password2", "")
 
         if not email or not password1:
-            messages.error(request, "Email dan password harus diisi.")
+            messages.error(request, "Email and password are required.")
             return render(request, "signUp.html")
 
         if password1 != password2:
-            messages.error(request, "Password dan konfirmasi tidak sama.")
+            messages.error(request, "Password and confirmation password do not match.")
             return render(request, "signUp.html")
 
         if User.objects.filter(email__iexact=email).exists():
-            messages.error(request, "Email sudah terdaftar.")
+            messages.error(request, "Email is already registered.")
             return render(request, "signUp.html")
 
         username = email.split("@")[0]
@@ -65,7 +65,7 @@ def sign_up(request):
 
         messages.success(
             request,
-            "Registrasi berhasil. Tunggu persetujuan admin sebelum dapat login."
+            "Registration successful. Please wait for admin approval before you can log in."
         )
         return redirect("authen:sign-in")
 
