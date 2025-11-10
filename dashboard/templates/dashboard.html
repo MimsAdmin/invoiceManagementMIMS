@@ -223,6 +223,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
 <script>
+  const FILE_SIZE_THRESHOLD = 4.3 * 1024 * 1024;
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => document.querySelectorAll(s);
   const api = (url, opts = {}) => fetch(url, opts).then(r => r.ok ? r.json() : r.json().then(j => Promise.reject(j)));
@@ -616,50 +617,6 @@
     }
   });
 
-  submitBtn.addEventListener("click", async () => {
-    const remark = $("#mRemark").value;
-    if (remark === "-" || !remark) {
-      alert("Please choose invoice remark.");
-      return;
-    }
-
-    const fd = new FormData();
-    fd.append("product", $("#mProduct").value.trim());
-    fd.append("date", $("#mDate").value);
-    fd.append("remark_id", remark);
-    fd.append("invoice_number", $("#mNumber").value.trim());
-    fd.append("amount", $("#mAmount").value.trim().replace(",", "."));
-    fd.append("currency", $("#mCurrency").value);
-    fd.append("status", $("#mStatus").value);
-    fd.append("from_party", $("#mFrom").value.trim());
-    fd.append("to_party", $("#mTo").value.trim());
-
-    if (backdrop.dataset.mode === "create") {
-      if (!fileInput.files[0]) {
-        alert("File is required.");
-        return;
-      }
-      fd.append("file", fileInput.files[0]);
-      await fetch("{% url 'dashboard:api-invoice-create' %}", {
-        method: "POST",
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-        body: fd
-      });
-    } else {
-      const id = backdrop.dataset.id;
-      if (fileInput.files[0]) fd.append("file", fileInput.files[0]);
-      await fetch(`/dashboard/api/invoice/${id}/update/`, {
-        method: "POST",
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-        body: fd
-      });
-    }
-
-    backdrop.style.display = "none";
-    await loadFilters();
-    await queryTable();
-  });
-
   async function delInvoice(id) {
     if (!confirm("Delete this invoice and its file?")) return;
     await fetch(`/dashboard/api/invoice/${id}/delete/`, {
@@ -899,5 +856,204 @@
       renderCharts();
     }
   });
+
+
+  async function uploadLargeFileToR2(file) {
+    try {
+        console.log(`Large file detected (${(file.size / 1024 / 1024).toFixed(2)}MB). Using R2 direct upload...`);
+        
+        // Step 1: Get presigned URL from backend
+        const urlParams = new URLSearchParams({
+            filename: file.name,
+            content_type: file.type || 'application/pdf'
+        });
+        
+        const urlResponse = await fetch(`/dashboard/api/get-upload-url/?${urlParams}`);
+        const urlData = await urlResponse.json();
+        
+        if (!urlData.ok) {
+            throw new Error(urlData.msg || 'Failed to get upload URL');
+        }
+        
+        const { upload_url, fields, file_key } = urlData;
+        
+        // Step 2: Upload directly to R2 using presigned POST
+        const formData = new FormData();
+        
+        // Add all fields from presigned POST
+        Object.keys(fields).forEach(key => {
+            formData.append(key, fields[key]);
+        });
+        
+        // Add the file (must be last!)
+        formData.append('file', file);
+        
+        // Upload to R2
+        const uploadResponse = await fetch(upload_url, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: ${uploadResponse.status}`);
+        }
+        
+        console.log('✓ File uploaded successfully to R2');
+        return file_key;
+        
+    } catch (error) {
+        console.error('R2 upload error:', error);
+        throw new Error(`Failed to upload large file: ${error.message}`);
+    }
+}
+
+// Helper: Show loading indicator
+function showLoading(message = 'Processing...') {
+    // You can customize this with your own loading UI
+    const modal = $("#backdrop");
+    const btn = $("#submitModal");
+    btn.disabled = true;
+    btn.textContent = message;
+    btn.style.opacity = '0.6';
+}
+
+function hideLoading() {
+    const btn = $("#submitModal");
+    btn.disabled = false;
+    btn.textContent = backdrop.dataset.mode === "create" ? "Upload" : "Update";
+    btn.style.opacity = '1';
+}
+
+// Main submit handler
+submitBtn.addEventListener("click", async () => {
+    const remark = $("#mRemark").value;
+    if (remark === "-" || !remark) {
+        alert("Please choose invoice remark.");
+        return;
+    }
+
+    const fd = new FormData();
+    fd.append("product", $("#mProduct").value.trim());
+    fd.append("date", $("#mDate").value);
+    fd.append("remark_id", remark);
+    fd.append("invoice_number", $("#mNumber").value.trim());
+    fd.append("amount", $("#mAmount").value.trim().replace(",", "."));
+    fd.append("currency", $("#mCurrency").value);
+    fd.append("status", $("#mStatus").value);
+    fd.append("from_party", $("#mFrom").value.trim());
+    fd.append("to_party", $("#mTo").value.trim());
+
+    try {
+        if (backdrop.dataset.mode === "create") {
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert("File is required.");
+                return;
+            }
+            
+            if (file.size > FILE_SIZE_THRESHOLD) {
+                // LARGE FILE: Use R2 direct upload
+                showLoading(`Uploading ${(file.size / 1024 / 1024).toFixed(1)}MB to R2...`);
+                
+                const fileKey = await uploadLargeFileToR2(file);
+                fd.append("file_key", fileKey);
+                
+                showLoading('Saving invoice...');
+            } else {
+                // SMALL FILE: Use traditional Vercel upload
+                showLoading('Uploading...');
+                fd.append("file", file);
+            }
+            
+            // Submit invoice data
+            const response = await fetch("{% url 'dashboard:api-invoice-create' %}", {
+                method: "POST",
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: fd
+            });
+            
+            const result = await response.json();
+            
+            if (!result.ok) {
+                throw new Error(result.msg || 'Upload failed');
+            }
+            
+        } else {
+            // UPDATE MODE
+            const id = backdrop.dataset.id;
+            const file = fileInput.files[0];
+            
+            if (file) {
+                if (file.size > FILE_SIZE_THRESHOLD) {
+                    // Large file - use R2
+                    showLoading(`Uploading ${(file.size / 1024 / 1024).toFixed(1)}MB to R2...`);
+                    const fileKey = await uploadLargeFileToR2(file);
+                    fd.append("file_key", fileKey);
+                    showLoading('Updating invoice...');
+                } else {
+                    // Small file - traditional
+                    showLoading('Uploading...');
+                    fd.append("file", file);
+                }
+            } else {
+                showLoading('Updating invoice...');
+            }
+            
+            const response = await fetch(`/dashboard/api/invoice/${id}/update/`, {
+                method: "POST",
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: fd
+            });
+            
+            const result = await response.json();
+            
+            if (!result.ok) {
+                throw new Error(result.msg || 'Update failed');
+            }
+        }
+
+        // Success
+        backdrop.style.display = "none";
+        await loadFilters();
+        await queryTable();
+        
+    } catch (error) {
+        alert(error.message);
+    } finally {
+        hideLoading();
+    }
+});
+
+function handleFile(f) {
+    fileName.textContent = f.name;
+    const sizeMB = (f.size / 1024 / 1024).toFixed(2);
+    
+    // Show upload method
+    let uploadMethod = '';
+    if (f.size > FILE_SIZE_THRESHOLD) {
+        uploadMethod = ' • Will use R2 direct upload';
+    } else {
+        uploadMethod = ' • Standard upload';
+    }
+    
+    fileMeta.textContent = `${sizeMB} MB • Ready${uploadMethod}`;
+
+    // Detect file type and set badge
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+        fileBadge.textContent = 'PDF';
+        fileBadge.className = 'pdf-badge';
+    } else if (ext === 'doc' || ext === 'docx') {
+        fileBadge.textContent = 'WORD';
+        fileBadge.className = 'word-badge';
+    } else {
+        fileBadge.textContent = 'FILE';
+        fileBadge.className = 'pdf-badge';
+    }
+
+    filePreview.classList.remove("hidden");
+    dzCenter.classList.add("hidden");
+}
 </script>
 {% endblock %}

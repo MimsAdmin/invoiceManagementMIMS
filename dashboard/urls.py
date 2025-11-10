@@ -1,6 +1,7 @@
 # dashboard/urls.py
 from django.urls import path
 from . import views
+from .views_upload import api_get_presigned_url
 
 app_name = "dashboard"
 
@@ -16,6 +17,8 @@ urlpatterns = [
     path("api/invoice/<int:pk>/delete/", views.api_invoice_delete, name="api-invoice-delete"),
     path("api/invoice/<int:pk>/status/", views.api_invoice_status, name="api-invoice-status"),
     path("api/filters/", views.api_filters, name="api-filters"),
+
+    path('api/get-upload-url/', api_get_presigned_url, name='api-get-upload-url'),
     
     # Export to Excel
     path("api/export/excel/", views.api_export_excel, name="api-export-excel"),

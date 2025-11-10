@@ -301,15 +301,49 @@ def api_invoice_create(request):
 
     remark = get_object_or_404(InvoiceRemarkCategory, pk=int(remark_id))
 
-    f = request.FILES.get("file")
-    if not f:
-        return JsonResponse({"ok": False, "msg": "File is required."}, status=400)
 
-    inv = Invoice.objects.create(
-        product=product, date=date, remark=remark, invoice_number=invoice_number,
-        amount=amount, currency=currency, status=status, from_party=from_party,
-        to_party=to_party, file=f
-    )
+    file_key = request.POST.get("file_key")  # ← From R2 direct upload
+    traditional_file = request.FILES.get("file")  # ← From Vercel upload
+    
+    if not file_key and not traditional_file:
+        return JsonResponse({"ok": False, "msg": "File is required."}, status=400)
+    
+    # Validate file size for traditional upload
+    if traditional_file and traditional_file.size > 4.5 * 1024 * 1024:  # 4.5MB
+        return JsonResponse({
+            "ok": False,
+            "msg": f"File too large ({traditional_file.size / (1024*1024):.1f}MB). Please use a file smaller than 4.5MB or the system will upload automatically to R2."
+        }, status=400)
+    
+    # Create invoice
+    if file_key:
+        # Large file - already uploaded to R2, just save the key
+        inv = Invoice.objects.create(
+            product=product,
+            date=date,
+            remark=remark,
+            invoice_number=invoice_number,
+            amount=amount,
+            currency=currency,
+            status=status,
+            from_party=from_party,
+            to_party=to_party,
+            file=file_key  # Save R2 key path
+        )
+    else:
+        # Small file - traditional Vercel upload
+        inv = Invoice.objects.create(
+            product=product,
+            date=date,
+            remark=remark,
+            invoice_number=invoice_number,
+            amount=amount,
+            currency=currency,
+            status=status,
+            from_party=from_party,
+            to_party=to_party,
+            file=traditional_file
+        )
 
     # Invalidate caches
     cache.delete('filters_payload_v2')
@@ -317,7 +351,7 @@ def api_invoice_create(request):
     cache.delete('chart_data_USD')
     cache.delete('chart_data_SGD')
 
-    # >>> LOG: create
+    # Log action
     log_action(
         request.user,
         action=LogEntry.Action.CREATE_INVOICE,
@@ -326,6 +360,7 @@ def api_invoice_create(request):
         entity_label=inv.invoice_number,
         details=f"Create invoice {invoice_number} ({currency} {amount}) to {to_party}"
     )
+    
     return JsonResponse({"ok": True, "id": inv.pk})
 
 @login_required
@@ -360,9 +395,23 @@ def api_invoice_update(request, pk):
     inv.from_party = from_party
     inv.to_party = to_party
 
-    f = request.FILES.get("file")
-    if f:
-        inv.file = f
+    file_key = request.POST.get("file_key")
+    traditional_file = request.FILES.get("file")
+    
+    if file_key:
+        # Large file uploaded to R2
+        inv.file = file_key
+    elif traditional_file:
+        # Small file traditional upload
+        # Validate size
+        if traditional_file.size > 4.5 * 1024 * 1024:
+            return JsonResponse({
+                "ok": False,
+                "msg": f"File too large ({traditional_file.size / (1024*1024):.1f}MB)."
+            }, status=400)
+        inv.file = traditional_file
+    # else: No file update, keep existing file
+    
     inv.save()
 
     # Invalidate caches
@@ -371,7 +420,7 @@ def api_invoice_update(request, pk):
     cache.delete('chart_data_USD')
     cache.delete('chart_data_SGD')
 
-    # >>> LOG: update
+    # Log update
     detail_parts = []
     if str(old_amount) != str(inv.amount) or old_currency != inv.currency:
         detail_parts.append(f"amount {old_currency} {old_amount} → {inv.currency} {inv.amount}")
