@@ -1,25 +1,20 @@
 {
   "version": 2,
-  "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput --clear && python manage.py migrate --noinput",
   "builds": [
     {
       "src": "invoiceManagement/wsgi.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb" }
-    },
-    {
-      "src": "staticfiles/**",
-      "use": "@vercel/static"
+      "config": { 
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.9"
+      }
     }
   ],
   "routes": [
-    { 
-      "src": "/static/(.*)", 
-      "dest": "/staticfiles/$1" 
-    },
-    { 
-      "src": "/(.*)", 
-      "dest": "invoiceManagement/wsgi.py" 
+    {
+      "src": "/(.*)",
+      "dest": "invoiceManagement/wsgi.py"
     }
-  ]
+  ],
+  "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput --clear && python manage.py migrate --noinput"
 }
