@@ -28,7 +28,6 @@ SESSION_COOKIE_SAMESITE = 'None'
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -74,29 +73,26 @@ TEMPLATES = [
 WSGI_APPLICATION = 'invoiceManagement.wsgi.application'
 
 
-
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if DATABASE_URL:
-    # Parse database URL
+
     db_config = dj_database_url.config(
         default=DATABASE_URL,
-        conn_max_age=60,  # Reduced for serverless (60s instead of 600s)
+        conn_max_age=60,
         conn_health_checks=True,
     )
-    
-    # Add performance optimizations
+
     db_config['OPTIONS'] = {
-        'connect_timeout': 10,  # 10 second connection timeout
-        'options': '-c statement_timeout=30000',  # 30 second query timeout
+        'connect_timeout': 10,
+        'sslmode': 'require',
     }
     
-    # Critical for PgBouncer compatibility
     db_config['DISABLE_SERVER_SIDE_CURSORS'] = True
     
     DATABASES = {'default': db_config}
 else:
-    # Development fallback
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -105,7 +101,6 @@ else:
     }
 
 
-# Use in-memory cache (no external dependency needed)
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -115,6 +110,7 @@ CACHES = {
         }
     }
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -132,11 +128,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Singapore'  # Set to your timezone
 USE_I18N = True
 USE_TZ = True
-
 
 
 STATIC_URL = "static/"
@@ -151,7 +147,7 @@ USE_R2 = (
 )
 
 if USE_R2:
-    # AWS S3 / Cloudflare R2 Configuration
+
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
     AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
@@ -163,10 +159,10 @@ if USE_R2:
     AWS_DEFAULT_ACL = None
     AWS_S3_ADDRESSING_STYLE = "virtual"
     AWS_S3_SIGNATURE_VERSION = "s3v4"
+    
 
     AWS_S3_MAX_MEMORY_SIZE = 5242880
 
-    # Django 5.2+ STORAGES configuration
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
@@ -191,7 +187,7 @@ if USE_R2:
 
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 else:
-    # Local storage fallback (won't work on Vercel/Lambda)
+
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -202,10 +198,6 @@ else:
     }
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
-
-# ============================================================================
-# LOGGING CONFIGURATION (for debugging slow queries)
-# ============================================================================
 
 if DEBUG:
     LOGGING = {
@@ -231,8 +223,6 @@ if DEBUG:
         },
     }
 
+
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
-
-
