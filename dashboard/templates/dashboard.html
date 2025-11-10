@@ -44,29 +44,29 @@
 
   <!-- TABLE PAGE -->
   <section id="tablePage" style="flex:1; display:flex; flex-direction:column; overflow-y: auto; padding: 10px;">
-  <div class="table-wrap" style="margin: 0 auto; width: calc(100% - 40px); max-width: 100%; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; height: 400px; max-height: 400px; margin-bottom: 40px;">
-    <div class="table-container" style="overflow-x: auto; overflow-y: hidden; display: flex; flex-direction: column; height: 100%; flex: 1;">
-      <div class="table-inner" style="min-width: 1400px; display: flex; flex-direction: column; height: 100%; flex: 1;">
-        <div class="thead">
-          <div>Product</div>
-          <div>Date</div>
-          <div>Invoice Remarks</div>
-          <div>Invoice Number</div>
-          <div>Amount</div>
-          <div>Currency</div>
-          <div>Status</div>
-          <div>From</div>
-          <div>To</div>
-          <div>Action</div>
-          <div>Download</div>
-        </div>
-        <div class="tbody-wrap" style="flex: 1; overflow-y: scroll; overflow-x: hidden; padding: 0 16px 12px; height: 0; max-height: 344px;">
-          <div id="tableBody"></div>
+    <div class="table-wrap" style="margin: 0 auto; width: calc(100% - 40px); max-width: 100%; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; height: 400px; max-height: 400px; margin-bottom: 40px;">
+      <div class="table-container" style="overflow-x: auto; overflow-y: hidden; display: flex; flex-direction: column; height: 100%; flex: 1;">
+        <div class="table-inner" style="min-width: 1400px; display: flex; flex-direction: column; height: 100%; flex: 1;">
+          <div class="thead">
+            <div>Product</div>
+            <div>Date</div>
+            <div>Invoice Remarks</div>
+            <div>Invoice Number</div>
+            <div>Amount</div>
+            <div>Currency</div>
+            <div>Status</div>
+            <div>From</div>
+            <div>To</div>
+            <div>Action</div>
+            <div>Download</div>
+          </div>
+          <div class="tbody-wrap" style="flex: 1; overflow-y: scroll; overflow-x: hidden; padding: 0 16px 12px; height: 0; max-height: 344px;">
+            <div id="tableBody"></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
   <!-- CHART PAGE -->
   <section id="chartPage" class="hidden chart-section">
@@ -296,7 +296,7 @@
 
   // Date range popover
   const fDate = $("#fDate"),
-    rangePop = $("#rangePop");
+        rangePop = $("#rangePop");
   fDate.addEventListener("click", (e) => {
     e.stopPropagation();
     const r = fDate.getBoundingClientRect();
@@ -307,7 +307,7 @@
 
   $("#rangeApply").onclick = () => {
     const s = $("#rangeStart").value,
-      e = $("#rangeEnd").value;
+          e = $("#rangeEnd").value;
     if (s && e) {
       fDate.value = `${s} to ${e}`
     } else {
@@ -522,11 +522,22 @@
     dzCenter.classList.remove("hidden");
   });
 
+  // ====== SENGAJA: hanya satu versi handleFile (tidak duplikat) ======
   function handleFile(f) {
     fileName.textContent = f.name;
-    fileMeta.textContent = `${(f.size / 1024).toFixed(0)} KB • Completed`;
+    const sizeMB = (f.size / 1024 / 1024).toFixed(2);
 
-    // Detect file type and set badge
+    // Info metode upload
+    let uploadMethod = '';
+    if (f.size > FILE_SIZE_THRESHOLD) {
+      uploadMethod = ' • Will use R2 direct upload';
+    } else {
+      uploadMethod = ' • Standard upload';
+    }
+
+    fileMeta.textContent = `${sizeMB} MB • Ready${uploadMethod}`;
+
+    // Badge tipe file
     const ext = f.name.split('.').pop().toLowerCase();
     if (ext === 'pdf') {
       fileBadge.textContent = 'PDF';
@@ -542,6 +553,244 @@
     filePreview.classList.remove("hidden");
     dzCenter.classList.add("hidden");
   }
+
+  /* ---------------- Charts ---------------- */
+  let chartInstances = {};
+
+  function destroyCharts() {
+    Object.values(chartInstances).forEach(ch => {
+      try { ch.destroy(); } catch (_) { }
+    });
+    chartInstances = {};
+  }
+
+  function renderCharts() {
+    destroyCharts();
+
+    const currencySelects = $$(".chart-currency");
+    const currencies = {
+      remark: currencySelects[0]?.value || 'IDR',
+      receiver: currencySelects[1]?.value || 'IDR',
+      month: currencySelects[2]?.value || 'IDR'
+    };
+
+    const byRemark = {};
+    const byStatus = {};
+    const byReceiver = {};
+    const byMonth = {};
+
+    rowsData.forEach(r => {
+      const amt = Number((r.amount || '0').toString().replace(/,/g, '')) || 0;
+      const curr = r.currency;
+      const rk = r.remark || '-';
+      const st = r.status || '-';
+      const to = r.to_party || '-';
+      const m = (r.date || '').slice(0, 7) || '-';
+
+      const amtRemark = convertCurrency(amt, curr, currencies.remark);
+      const amtReceiver = convertCurrency(amt, curr, currencies.receiver);
+      const amtMonth = convertCurrency(amt, curr, currencies.month);
+
+      byRemark[rk] = (byRemark[rk] || 0) + amtRemark;
+      byStatus[st] = (byStatus[st] || 0) + 1;
+      byReceiver[to] = (byReceiver[to] || 0) + amtReceiver;
+      byMonth[m] = (byMonth[m] || 0) + amtMonth;
+    });
+
+    const ctx1 = $("#barRemark");
+    const ctx2 = $("#pieStatus");
+    const ctx3 = $("#barReceiver");
+    const ctx4 = $("#lineMonth");
+
+    chartInstances.barRemark = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(byRemark),
+        datasets: [{ label: `Amount (${currencies.remark})`, data: Object.values(byRemark) }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    chartInstances.pieStatus = new Chart(ctx2, {
+      type: 'pie',
+      data: {
+        labels: Object.keys(byStatus),
+        datasets: [{ data: Object.values(byStatus) }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } }
+      }
+    });
+
+    const recvEntries = Object.entries(byReceiver).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    chartInstances.barReceiver = new Chart(ctx3, {
+      type: 'bar',
+      data: {
+        labels: recvEntries.map(e => e[0]),
+        datasets: [{ label: `Amount (${currencies.receiver})`, data: recvEntries.map(e => e[1]) }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        scales: { x: { beginAtZero: true } }
+      }
+    });
+
+    const mEntries = Object.entries(byMonth).filter(([k]) => k !== '-').sort((a, b) => a[0].localeCompare(b[0]));
+    chartInstances.lineMonth = new Chart(ctx4, {
+      type: 'line',
+      data: {
+        labels: mEntries.map(e => e[0]),
+        datasets: [{
+          label: `Amount (${currencies.month})`,
+          data: mEntries.map(e => e[1]),
+          tension: .25,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('chart-currency')) {
+      renderCharts();
+    }
+  });
+
+  // ================== FIX: Upload besar → presigned PUT, return file_key ==================
+  async function uploadLargeFileToR2(file) {
+    // 1) Minta URL bertanda tangan dari Django
+    const prep = await fetch(`/dashboard/api/get-upload-url/?filename=${encodeURIComponent(file.name)}&content_type=${encodeURIComponent(file.type)}`);
+    const j = await prep.json();
+    if (!j.ok) throw new Error('Failed to get upload URL');
+
+    // 2) Upload langsung ke R2 dengan PUT
+    const putRes = await fetch(j.upload_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type }, // harus SAMA dengan backend
+      body: file,
+    });
+    if (!putRes.ok) {
+      const text = await putRes.text();
+      throw new Error(`R2 PUT failed: ${putRes.status} ${text}`);
+    }
+
+    // 3) Kembalikan hanya file_key; form metadata dikirim di handler submit
+    return j.file_key;
+  }
+
+  // Helper: Loading indicator
+  function showLoading(message = 'Processing...') {
+    const btn = $("#submitModal");
+    btn.disabled = true;
+    btn.textContent = message;
+    btn.style.opacity = '0.6';
+  }
+  function hideLoading() {
+    const btn = $("#submitModal");
+    btn.disabled = false;
+    btn.textContent = backdrop.dataset.mode === "create" ? "Upload" : "Update";
+    btn.style.opacity = '1';
+  }
+
+  // Main submit handler
+  submitBtn.addEventListener("click", async () => {
+    const remark = $("#mRemark").value;
+    if (remark === "-" || !remark) {
+      alert("Please choose invoice remark.");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("product", $("#mProduct").value.trim());
+    fd.append("date", $("#mDate").value);
+    fd.append("remark_id", remark);
+    fd.append("invoice_number", $("#mNumber").value.trim());
+    fd.append("amount", $("#mAmount").value.trim().replace(",", "."));
+    fd.append("currency", $("#mCurrency").value);
+    fd.append("status", $("#mStatus").value);
+    fd.append("from_party", $("#mFrom").value.trim());
+    fd.append("to_party", $("#mTo").value.trim());
+
+    try {
+      if (backdrop.dataset.mode === "create") {
+        const file = fileInput.files[0];
+
+        if (!file) {
+          alert("File is required.");
+          return;
+        }
+
+        if (file.size > FILE_SIZE_THRESHOLD) {
+          showLoading(`Uploading ${(file.size / 1024 / 1024).toFixed(1)}MB to R2...`);
+          const file_key = await uploadLargeFileToR2(file);
+          fd.append("file_key", file_key);   // ← hanya key yang dikirim ke server
+          showLoading('Saving invoice...');
+        } else {
+          showLoading('Uploading...');
+          fd.append("file", file);
+        }
+
+        const response = await fetch("{% url 'dashboard:api-invoice-create' %}", {
+          method: "POST",
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+          body: fd
+        });
+        const result = await response.json();
+        if (!result.ok) throw new Error(result.msg || 'Upload failed');
+
+      } else {
+        // UPDATE
+        const id = backdrop.dataset.id;
+        const file = fileInput.files[0];
+
+        if (file) {
+          if (file.size > FILE_SIZE_THRESHOLD) {
+            showLoading(`Uploading ${(file.size / 1024 / 1024).toFixed(1)}MB to R2...`);
+            const file_key = await uploadLargeFileToR2(file);
+            fd.append("file_key", file_key);
+            showLoading('Updating invoice...');
+          } else {
+            showLoading('Uploading...');
+            fd.append("file", file);
+          }
+        } else {
+          showLoading('Updating invoice...');
+        }
+
+        const response = await fetch(`/dashboard/api/invoice/${id}/update/`, {
+          method: "POST",
+          headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+          body: fd
+        });
+        const result = await response.json();
+        if (!result.ok) throw new Error(result.msg || 'Update failed');
+      }
+
+      // Success
+      backdrop.style.display = "none";
+      await loadFilters();
+      await queryTable();
+
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      hideLoading();
+    }
+  });
 
   function openCreateModal() {
     modalTitle.textContent = "Please fill the credential of the file";
@@ -735,325 +984,5 @@
   document.addEventListener("click", (e) => {
     if (e.target.id === "emptyZone") openCreateModal();
   });
-
-  /* ---------------- Charts ---------------- */
-  let chartInstances = {};
-
-  function destroyCharts() {
-    Object.values(chartInstances).forEach(ch => {
-      try {
-        ch.destroy();
-      } catch (_) { }
-    });
-    chartInstances = {};
-  }
-
-  function renderCharts() {
-    destroyCharts();
-
-    // Get currency for each chart
-    const currencySelects = $$(".chart-currency");
-    const currencies = {
-      remark: currencySelects[0]?.value || 'IDR',
-      receiver: currencySelects[1]?.value || 'IDR',
-      month: currencySelects[2]?.value || 'IDR'
-    };
-
-    const byRemark = {};
-    const byStatus = {};
-    const byReceiver = {};
-    const byMonth = {};
-
-    rowsData.forEach(r => {
-      const amt = Number((r.amount || '0').toString().replace(/,/g, '')) || 0;
-      const curr = r.currency;
-      const rk = r.remark || '-';
-      const st = r.status || '-';
-      const to = r.to_party || '-';
-      const m = (r.date || '').slice(0, 7) || '-';
-
-      // Convert to target currencies
-      const amtRemark = convertCurrency(amt, curr, currencies.remark);
-      const amtReceiver = convertCurrency(amt, curr, currencies.receiver);
-      const amtMonth = convertCurrency(amt, curr, currencies.month);
-
-      byRemark[rk] = (byRemark[rk] || 0) + amtRemark;
-      byStatus[st] = (byStatus[st] || 0) + 1;
-      byReceiver[to] = (byReceiver[to] || 0) + amtReceiver;
-      byMonth[m] = (byMonth[m] || 0) + amtMonth;
-    });
-
-    const ctx1 = $("#barRemark");
-    const ctx2 = $("#pieStatus");
-    const ctx3 = $("#barReceiver");
-    const ctx4 = $("#lineMonth");
-
-    chartInstances.barRemark = new Chart(ctx1, {
-      type: 'bar',
-      data: {
-        labels: Object.keys(byRemark),
-        datasets: [{ label: `Amount (${currencies.remark})`, data: Object.values(byRemark) }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: true } },
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-
-    chartInstances.pieStatus = new Chart(ctx2, {
-      type: 'pie',
-      data: {
-        labels: Object.keys(byStatus),
-        datasets: [{ data: Object.values(byStatus) }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'top' } }
-      }
-    });
-
-    const recvEntries = Object.entries(byReceiver).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    chartInstances.barReceiver = new Chart(ctx3, {
-      type: 'bar',
-      data: {
-        labels: recvEntries.map(e => e[0]),
-        datasets: [{ label: `Amount (${currencies.receiver})`, data: recvEntries.map(e => e[1]) }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        indexAxis: 'y',
-        scales: { x: { beginAtZero: true } }
-      }
-    });
-
-    const mEntries = Object.entries(byMonth).filter(([k]) => k !== '-').sort((a, b) => a[0].localeCompare(b[0]));
-    chartInstances.lineMonth = new Chart(ctx4, {
-      type: 'line',
-      data: {
-        labels: mEntries.map(e => e[0]),
-        datasets: [{
-          label: `Amount (${currencies.month})`,
-          data: mEntries.map(e => e[1]),
-          tension: .25,
-          fill: false
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
-
-  // Currency change listeners for charts
-  document.addEventListener('change', (e) => {
-    if (e.target.classList.contains('chart-currency')) {
-      renderCharts();
-    }
-  });
-
-
-  async function uploadLargeFileToR2(file) {
-    try {
-        console.log(`Large file detected (${(file.size / 1024 / 1024).toFixed(2)}MB). Using R2 direct upload...`);
-        
-        // Step 1: Get presigned URL from backend
-        const urlParams = new URLSearchParams({
-            filename: file.name,
-            content_type: file.type || 'application/pdf'
-        });
-        
-        const urlResponse = await fetch(`/dashboard/api/get-upload-url/?${urlParams}`);
-        const urlData = await urlResponse.json();
-        
-        if (!urlData.ok) {
-            throw new Error(urlData.msg || 'Failed to get upload URL');
-        }
-        
-        const { upload_url, fields, file_key } = urlData;
-        
-        // Step 2: Upload directly to R2 using presigned POST
-        const formData = new FormData();
-        
-        // Add all fields from presigned POST
-        Object.keys(fields).forEach(key => {
-            formData.append(key, fields[key]);
-        });
-        
-        // Add the file (must be last!)
-        formData.append('file', file);
-        
-        // Upload to R2
-        const uploadResponse = await fetch(upload_url, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!uploadResponse.ok) {
-            throw new Error(`Upload failed: ${uploadResponse.status}`);
-        }
-        
-        console.log('✓ File uploaded successfully to R2');
-        return file_key;
-        
-    } catch (error) {
-        console.error('R2 upload error:', error);
-        throw new Error(`Failed to upload large file: ${error.message}`);
-    }
-}
-
-// Helper: Show loading indicator
-function showLoading(message = 'Processing...') {
-    // You can customize this with your own loading UI
-    const modal = $("#backdrop");
-    const btn = $("#submitModal");
-    btn.disabled = true;
-    btn.textContent = message;
-    btn.style.opacity = '0.6';
-}
-
-function hideLoading() {
-    const btn = $("#submitModal");
-    btn.disabled = false;
-    btn.textContent = backdrop.dataset.mode === "create" ? "Upload" : "Update";
-    btn.style.opacity = '1';
-}
-
-// Main submit handler
-submitBtn.addEventListener("click", async () => {
-    const remark = $("#mRemark").value;
-    if (remark === "-" || !remark) {
-        alert("Please choose invoice remark.");
-        return;
-    }
-
-    const fd = new FormData();
-    fd.append("product", $("#mProduct").value.trim());
-    fd.append("date", $("#mDate").value);
-    fd.append("remark_id", remark);
-    fd.append("invoice_number", $("#mNumber").value.trim());
-    fd.append("amount", $("#mAmount").value.trim().replace(",", "."));
-    fd.append("currency", $("#mCurrency").value);
-    fd.append("status", $("#mStatus").value);
-    fd.append("from_party", $("#mFrom").value.trim());
-    fd.append("to_party", $("#mTo").value.trim());
-
-    try {
-        if (backdrop.dataset.mode === "create") {
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                alert("File is required.");
-                return;
-            }
-            
-            if (file.size > FILE_SIZE_THRESHOLD) {
-                // LARGE FILE: Use R2 direct upload
-                showLoading(`Uploading ${(file.size / 1024 / 1024).toFixed(1)}MB to R2...`);
-                
-                const fileKey = await uploadLargeFileToR2(file);
-                fd.append("file_key", fileKey);
-                
-                showLoading('Saving invoice...');
-            } else {
-                // SMALL FILE: Use traditional Vercel upload
-                showLoading('Uploading...');
-                fd.append("file", file);
-            }
-            
-            // Submit invoice data
-            const response = await fetch("{% url 'dashboard:api-invoice-create' %}", {
-                method: "POST",
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-                body: fd
-            });
-            
-            const result = await response.json();
-            
-            if (!result.ok) {
-                throw new Error(result.msg || 'Upload failed');
-            }
-            
-        } else {
-            // UPDATE MODE
-            const id = backdrop.dataset.id;
-            const file = fileInput.files[0];
-            
-            if (file) {
-                if (file.size > FILE_SIZE_THRESHOLD) {
-                    // Large file - use R2
-                    showLoading(`Uploading ${(file.size / 1024 / 1024).toFixed(1)}MB to R2...`);
-                    const fileKey = await uploadLargeFileToR2(file);
-                    fd.append("file_key", fileKey);
-                    showLoading('Updating invoice...');
-                } else {
-                    // Small file - traditional
-                    showLoading('Uploading...');
-                    fd.append("file", file);
-                }
-            } else {
-                showLoading('Updating invoice...');
-            }
-            
-            const response = await fetch(`/dashboard/api/invoice/${id}/update/`, {
-                method: "POST",
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-                body: fd
-            });
-            
-            const result = await response.json();
-            
-            if (!result.ok) {
-                throw new Error(result.msg || 'Update failed');
-            }
-        }
-
-        // Success
-        backdrop.style.display = "none";
-        await loadFilters();
-        await queryTable();
-        
-    } catch (error) {
-        alert(error.message);
-    } finally {
-        hideLoading();
-    }
-});
-
-function handleFile(f) {
-    fileName.textContent = f.name;
-    const sizeMB = (f.size / 1024 / 1024).toFixed(2);
-    
-    // Show upload method
-    let uploadMethod = '';
-    if (f.size > FILE_SIZE_THRESHOLD) {
-        uploadMethod = ' • Will use R2 direct upload';
-    } else {
-        uploadMethod = ' • Standard upload';
-    }
-    
-    fileMeta.textContent = `${sizeMB} MB • Ready${uploadMethod}`;
-
-    // Detect file type and set badge
-    const ext = f.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') {
-        fileBadge.textContent = 'PDF';
-        fileBadge.className = 'pdf-badge';
-    } else if (ext === 'doc' || ext === 'docx') {
-        fileBadge.textContent = 'WORD';
-        fileBadge.className = 'word-badge';
-    } else {
-        fileBadge.textContent = 'FILE';
-        fileBadge.className = 'pdf-badge';
-    }
-
-    filePreview.classList.remove("hidden");
-    dzCenter.classList.add("hidden");
-}
 </script>
 {% endblock %}
