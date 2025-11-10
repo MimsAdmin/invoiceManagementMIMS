@@ -18,6 +18,16 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+import os
+
+def debug_storage(_):
+    return JsonResponse({
+        "DEFAULT_FILE_STORAGE": getattr(settings, "DEFAULT_FILE_STORAGE", "filesystem"),
+        "USE_R2": getattr(settings, "USE_R2", None),
+        "MEDIA_URL": settings.MEDIA_URL,
+        "HAS_AWS_KEY": bool(os.getenv("AWS_ACCESS_KEY_ID")),
+    })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
