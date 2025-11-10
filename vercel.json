@@ -8,12 +8,18 @@
       "config": { "maxLambdaSize": "15mb" }
     },
     {
-      "src": "static/**",
+      "src": "staticfiles/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    { "src": "/static/(.*)", "dest": "/static/$1" },
-    { "src": "/(.*)", "dest": "invoiceManagement/wsgi.py" }
+    { 
+      "src": "/static/(.*)", 
+      "dest": "/staticfiles/$1" 
+    },
+    { 
+      "src": "/(.*)", 
+      "dest": "invoiceManagement/wsgi.py" 
+    }
   ]
 }

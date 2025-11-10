@@ -1,3 +1,4 @@
+# settings.py
 import os
 from pathlib import Path
 import environ
@@ -134,10 +135,9 @@ TIME_ZONE = 'Asia/Singapore'
 USE_I18N = True
 USE_TZ = True
 
-
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "static"
-STATICFILES_DIRS = []
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 
