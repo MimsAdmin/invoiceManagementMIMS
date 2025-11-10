@@ -7,20 +7,13 @@
       "config": {
         "maxLambdaSize": "15mb"
       }
-    },
-    {
-      "src": "static/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "invoiceManagement/wsgi.py"
     }
-  ]
+  ],
+  "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput --clear && python manage.py migrate --noinput"
 }
