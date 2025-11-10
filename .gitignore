@@ -10,7 +10,6 @@ venv/
 .venv/
 
 # Django static and media folders (if managed outside version control)
-staticfiles/
 media/
 
 # Coverage reports
